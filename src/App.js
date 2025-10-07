@@ -1,24 +1,27 @@
-import logo from './logo.svg';
-import './App.css';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+
+import Home from "./page/home/Home"
+import LotBatch from "./page/lotBatch/LotBatch"
+import Mpo from './page/mpo/Mpo'
+import NotFound from './page/NotFound';
+import LoginPage from './page/Login';
+import MainLayout from './component/MainLayout';
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <div className="App">
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+           <Route element={<MainLayout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/lot-batch" element={<LotBatch />} />
+            <Route path="/mpo" element={<Mpo />} />
+          </Route>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 

@@ -1,0 +1,35 @@
+.header {
+  position: fixed;
+  top: 0;
+  left: 250px;
+  right: 0;
+  z-index: 999;
+  transition: left 0.3s ease;
+}
+
+.header.collapsed {
+  left: 80px;
+}
+
+.date-info {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.btn-banner,
+.btn-menu {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+}
+
+.btn-banner {
+  background-color: #f59e0b;
+  color: white;
+  border: none;
+}
+
+.btn-banner:hover {
+  background-color: #f59e0b;
+  opacity: 0.9;
+}

@@ -1,0 +1,135 @@
+
+.login-container {
+  height: 100vh;
+  background-color: #f8fafc;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.left-panel {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  color: #1e3a8a;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  position: relative;
+}
+
+.right-panel {
+  background-color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+}
+
+.brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: bold;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.logo-circle {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #0ea5e9;
+  display: inline-block;
+}
+
+.logo-text {
+  color: #1e3a8a;
+}
+
+.tagline {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: left;
+  max-width: 400px;
+}
+
+.highlight {
+  color: #0ea5e9;
+  font-size: 32px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  border: none;
+  border-radius: 12px;
+  padding: 2rem;
+}
+
+.login-card h2 {
+  font-weight: 600;
+  color: #1e3a8a;
+}
+
+.login-card .form-label {
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.login-card .form-control {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+}
+
+.login-card .btn-primary {
+  background-color: #0ea5e9;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.login-card .btn-primary:hover {
+  background-color: #0da5e9;
+}
+
+.register-link {
+  color: #0ea5e9;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.register-link:hover {
+  text-decoration: underline;
+}
+
+footer {
+  margin-top: 2rem;
+  font-size: 0.8rem;
+}
+
+/* Responsif */
+@media (max-width: 768px) {
+  .login-container {
+    flex-direction: column;
+  }
+
+  .left-panel,
+  .right-panel {
+    width: 100%;
+    padding: 1.5rem;
+  }
+
+  .tagline {
+    font-size: 2rem;
+    text-align: center;
+  }
+
+  .login-card {
+    max-width: 100%;
+  }
+}

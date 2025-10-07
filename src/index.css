@@ -1,13 +1,296 @@
-body {
+@import url("https://fonts.googleapis.com/css2?family=Lato:wght@100;700&family=Poppins:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;1,200;1,300&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap");
+
+* {
+  font-family: "Poppins", sans-serif;
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  padding: 0;
+  box-sizing: border-box;
+  font-size: 0.87rem;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+:root {
+  --body-color: #f5fafa;
+  --sidebar-color: #fff;
+  --primary-color: #0086ff;
+  --primary-color-light: #f6f5ff;
+  --toggle-color: #ddd;
+  --text-color: #707070;
+
+  --tran-02: all 0.2s ease;
+  --tran-03: all 0.3s ease;
+  --tran-04: all 0.4s ease;
+  --tran-05: all 0.5s ease;
+
+  --xs: 0;
+  --sm: 576px;
+  --md: 768px;
+  --lg: 992px;
+  --xl: 1200px;
+  --xxl: 1400px;
+}
+
+body {
+  font-size: 1rem;
+  height: auto;
+  background: var(--body-color);
+  color: var(--text-color);
+  transition: var(--tran-04);
+}
+
+body.dark {
+  --body-color: #18191a;
+  --sidebar-color: #242526;
+  --primary-color: #3a3b3c;
+  --primary-color-light: #3a3b3c;
+  --toggle-color: #fff;
+  --text-color: #ccc;
+}
+
+.main {
+  position: relative;
+  left: 220px;
+  min-height: 100vh;
+  width: calc(100% - 220px);
+  background: var(--body-color);
+  transition: var(--tran-05);
+}
+
+.main.main-menu {
+  left: 60px;
+  width: calc(100% - 60px);
+}
+
+/* ===== Sidebar ===== */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 220px;
+  background: var(--sidebar-color);
+  transition: var(--tran-04);
+  z-index: 100;
+  padding-top: 10px;
+}
+
+.sidebar.closed {
+  width: 60px;
+}
+
+/* ==== Toggle Button Style ==== */
+.toggle-button {
+  position: absolute;
+  right: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background-color: #0086ff;
+  border-radius: 50%;
+  transition: var(--tran-03);
+  z-index: 10;
+}
+
+.toggle-button.collapsed {
+  right: -12px;
+  background-color: #0086ff;
+}
+
+.toggle-circle {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.toggle-circle svg {
+  stroke: white;
+  stroke-width: 2;
+  transition: var(--tran-02);
+}
+
+/* ==== Reuseble CSS ==== */
+.sidebar li {
+  height: 40px;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.sidebar .text {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-color);
+  transition: var(--tran-05);
+  white-space: nowrap;
+}
+
+.sidebar.closed .text {
+  display: none;
+}
+
+.sidebar .image {
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.1rem;
+  color: var(--primary-color);
+  padding: 0 10px;
+}
+
+.sidebar.closed .image {
+  min-width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar li .icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  font-size: 1.1rem;
+}
+
+.sidebar li .icon,
+.sidebar li .text {
+  color: var(--text-color);
+  transition: var(--tran-02);
+}
+
+.sidebar li .a {
+  height: 100%;
+  width: 100%;
+  margin: 0px 10px 0px 10px;
+  display: flex;
+  border-radius: 6px;
+  align-items: center;
+  text-decoration: none;
+  transition: var(--tran-04);
+}
+
+.sidebar li .a:hover {
+  background: var(--primary-color);
+  color: var(--sidebar-color);
+}
+
+.sidebar li .a:hover .icon,
+.sidebar li .a:hover .text {
+  color: var(--sidebar-color);
+}
+
+/* Menu Aktif */
+.sidebar li.nav-link.active .a {
+  background: var(--primary-color);
+  color: var(--sidebar-color);
+}
+
+.sidebar li.nav-link.active .a .icon,
+.sidebar li.nav-link.active .a .text {
+  color: var(--sidebar-color);
+}
+
+body.dark .sidebar li .a:hover .icon,
+body.dark .sidebar li .a:hover .text {
+  color: var(--text-color);
+}
+
+.sidebar .menu-bar {
+  height: calc(100% - 20px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.sidebar .menu {
+  margin-top: 10px;
+  overflow: auto;
+}
+
+.sidebar.closed .menu {
+  padding-left: 0;
+}
+
+.sidebar .menu::-webkit-scrollbar {
+  display: none;
+}
+
+.sidebar .bottom-content {
+  margin-bottom: 10px;
+  background: var(--primary-color-light);
+}
+
+.sidebar .bottom-content li .a {
+  cursor: pointer;
+}
+.image-text {
+  cursor: pointer;
+}
+
+.profile-placeholder {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background-color: #e9ecef;
+  font-size: 2rem;
+  color: #6c757d;
+}
+
+.profile-icon {
+  font-size: 2rem;
+}
+
+.list-group-item.active {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidebar,
+  .sidebar.closed {
+    width: 0px;
+    transition: all 0.8s ease;
+  }
+
+  .sidebar {
+    width: 60px;
+    transition: all 0.8s ease;
+  }
+
+  .sidebar .text {
+    display: none;
+  }
+
+  .sidebar ul.menu-links li .a:hover div.text {
+    display: block;
+    position: absolute;
+    left: 100%;
+    background: var(--primary-color);
+    padding: 8px;
+    border-radius: 0px 6px 6px 0px;
+  }
+
+  .sidebar.closed ~ .main,
+  .main {
+    left: 0;
+    width: 100%;
+  }
+
+  .sidebar.closed ~ footer,
+  footer {
+    left: 0;
+    width: 100%;
+  }
 }

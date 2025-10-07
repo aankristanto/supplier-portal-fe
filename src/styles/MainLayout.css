@@ -1,0 +1,20 @@
+.layout-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  margin-left: 220px; /* Sesuaikan dengan lebar sidebar */
+  transition: margin-left 0.3s ease;
+  min-height: 100vh;
+  background-color: var(--body-color);
+}
+
+.layout-container.sidebar-collapsed .main-content {
+  margin-left: 60px; /* Sesuaikan dengan lebar sidebar saat collapse */
+}
+
+.content-wrapper {
+  padding: 20px;
+}
