@@ -19,7 +19,7 @@ const LoginPage = () => {
           </div>
           <h1 className="tagline mb-4">
             Supllier Dashboard <br />
-            <span className="highlight">Lot Batch Delivery</span>
+            <span className="highlight">Material Delivery</span>
           </h1>
           <Image src="/assets/images/login-ilustration.png" alt="Team Illustration" fluid />
         </Col>
@@ -28,7 +28,7 @@ const LoginPage = () => {
           <Card className="login-card shadow-sm">
             <Card.Body>
               <h2 className="text-center mb-3">Vendor Portal</h2>
-              <p className="text-center text-muted mb-4">Supplier Dashboard Lot Batch Delivery</p>
+              <p className="text-center text-muted mb-4">Supplier Dashboard Material Delivery <br /> PT Sumber Bintang Rejeki</p>
 
               <Form onSubmit={onLogin}>
                 <Form.Group className="mb-3" controlId="formEmail">

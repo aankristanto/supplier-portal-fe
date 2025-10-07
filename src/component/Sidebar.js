@@ -94,7 +94,7 @@ const Sidebar = ({ togel, handleToggle }) => {
         <Modal.Header closeButton>
           <Modal.Title>Account Details</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body className='body-account'>
           <Row>
             <Col md={4} className="border-end">
               <div className="list-group">

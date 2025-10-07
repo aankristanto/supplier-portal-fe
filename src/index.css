@@ -55,6 +55,10 @@ body.dark {
   transition: var(--tran-05);
 }
 
+.body-account {
+  height: 450px;
+}
+
 .main.main-menu {
   left: 60px;
   width: calc(100% - 60px);
@@ -286,6 +290,10 @@ body.dark .sidebar li .a:hover .text {
   .main {
     left: 0;
     width: 100%;
+  }
+
+  .body-account {
+    height: 500px;
   }
 
   .sidebar.closed ~ footer,
