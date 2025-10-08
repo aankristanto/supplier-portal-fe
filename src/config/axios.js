@@ -25,7 +25,7 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
     (response) => {
-        const newToken = response.headers['x-new-access-token'];
+        const newToken = response.headers["x-new-access-token"];
         if (newToken) {
             localStorage.setItem('token', newToken);
         }
