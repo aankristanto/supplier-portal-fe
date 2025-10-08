@@ -15,7 +15,7 @@ const Sidebar = ({ togel, handleToggle }) => {
 
   const [activeTab, setActiveTab] = useState('account');
   const [showProfileModal, setShowProfileModal] = useState(false);
-
+  const [listMenu, setListMenu] = useState([])
   const [formData, setFormData] = useState({
     ID: '',
     INITIAL: '',
@@ -39,21 +39,14 @@ const Sidebar = ({ togel, handleToggle }) => {
     CONFIRM_PASSWORD: '',
   });
 
-  const dummyMenus = [
-    { title: "Main Menu", path: "/", icon: "home" },
-    { title: "MPO", path: "/mpo", icon: "clipboard" },
-    { title: "Lot Batch", path: "/lot-batch", icon: "calendar" },
-    { title: "List Company", path: "/company", icon: "document" },
-    { title: "Role", path: "/role", icon: "cube" },
-    { title: "User", path: "/user", icon: "checkmark" },
-  ];
-
-
-  useEffect(() => {
-    if (showProfileModal && activeTab === 'account') {
-      fetchProfile();
-    }
-  }, [showProfileModal, activeTab]);
+  // const dummyMenus = [
+  //   { title: "Main Menu", path: "/", icon: "home" },
+  //   { title: "MPO", path: "/mpo", icon: "clipboard" },
+  //   { title: "Lot Batch", path: "/lot-batch", icon: "calendar" },
+  //   { title: "List Company", path: "/company", icon: "document" },
+  //   { title: "Role", path: "/role", icon: "cube" },
+  //   { title: "User", path: "/user", icon: "checkmark" },
+  // ];
 
   const fetchProfile = async () => {
     try {
@@ -119,6 +112,15 @@ const Sidebar = ({ togel, handleToggle }) => {
     }
   };
 
+  const fetchMenu = async () => {
+    try {
+      const {data} = await axios.get("/menu")
+      setListMenu(data.data);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed fetch menu');
+    }
+  }
+
   const handleLogout = async () => {
     const resp = await Swal.fire({
       title: "Are you sure you want to logout?",
@@ -136,6 +138,16 @@ const Sidebar = ({ togel, handleToggle }) => {
       navigate("/login");
     }
   };
+
+  useEffect(() => {
+    fetchMenu()
+  }, [])
+
+  useEffect(() => {
+    if (showProfileModal && activeTab === 'account') {
+      fetchProfile();
+    }
+  }, [showProfileModal, activeTab]);
 
   return (
     <nav className={`sidebar ${togel ? 'closed' : ''} shadow-sm`}>
@@ -330,13 +342,13 @@ const Sidebar = ({ togel, handleToggle }) => {
       <div className="menu-bar">
         <div className="menu">
           <ul className="menu-links" style={{ paddingLeft: 0 }}>
-            {dummyMenus.map((menu, idx) => (
+            {listMenu.map((menu, idx) => (
               <SideMenu
                 key={idx}
-                title={menu.title}
-                link={menu.path}
-                icon={menu.icon}
-                isActive={location.pathname === menu.path}
+                title={`${menu.TITLE}`}
+                link={menu.PATH}
+                icon={menu.ICON}
+                isActive={location.pathname === menu.PATH}
               />
             ))}
           </ul>

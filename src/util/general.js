@@ -1,6 +1,8 @@
 export const defaultColDef = {
+    sortable: true,
+    filter: true,
+    floatingFilter: true,
     resizable: true,
-            editable: false,
-            filter: true,
-            sortable: true,
+    enableCellTextSelection: true,
+    flex: 0,
 }

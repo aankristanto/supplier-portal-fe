@@ -2,10 +2,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 
-import { Button, Modal, Form, Row, Col, ToastContainer } from 'react-bootstrap';
+import { Button, Modal, Form, Row, Col } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 import axios from '../../config/axios.js';
 import { defaultColDef } from '../../util/general.js';
+import "ag-grid-community/styles/ag-grid.css";
+import "ag-grid-community/styles/ag-theme-alpine.css";
 
 const CompanyPage = () => {
   const [rowData, setRowData] = useState([]);
@@ -31,7 +33,7 @@ const CompanyPage = () => {
       filter: true,
       sortable: true,
       flex: 1,
-      minWidth: 150,
+      width: 150,
     },
     {
       headerName: 'ID',
@@ -46,7 +48,7 @@ const CompanyPage = () => {
       filter: true,
       sortable: true,
       flex: 1,
-      minWidth: 200,
+      width: 200,
     },
     {
       headerName: 'Tlp',
@@ -61,7 +63,7 @@ const CompanyPage = () => {
       filter: true,
       sortable: true,
       flex: 1,
-      minWidth: 150,
+      width: 200,
     },
     {
       headerName: 'Nama PIC',
@@ -69,7 +71,7 @@ const CompanyPage = () => {
       filter: true,
       sortable: true,
       flex: 1,
-      minWidth: 150,
+      width: 200,
     },
     {
       headerName: 'Email PIC',
@@ -77,10 +79,12 @@ const CompanyPage = () => {
       filter: true,
       sortable: true,
       flex: 1,
-      minWidth: 200,
+      width: 250,
     },
     {
+      pinned: 'right',
       headerName: 'Aksi',
+      width: 150,
       cellRenderer: (params) => (
         <div className="d-flex gap-2">
           <Button size="sm" variant="outline-primary" onClick={() => handleEdit(params.data)}>
@@ -91,7 +95,6 @@ const CompanyPage = () => {
           </Button>
         </div>
       ),
-      width: 100,
     },
   ];
 
@@ -184,15 +187,13 @@ const CompanyPage = () => {
         </Button>
       </div>
 
-      <div className="ag-theme-alpine" style={{ height: 500, width: '100%' }}>
+      <div className="ag-theme-alpine" style={{ height: 500, width: '100%' , overflowX: 'auto' }}>
         <AgGridReact
           ref={gridRef}
           rowData={rowData}
           columnDefs={columnDefs}
           pagination={true}
-          paginationPageSize={10}
-          rowSelection="single"
-          suppressCellFocus={true}
+          paginationPageSize={15}
           defaultColDef={defaultColDef}
         />
       </div>
@@ -306,7 +307,6 @@ const CompanyPage = () => {
         </Modal.Body>
       </Modal>
 
-      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop />
     </div>
   );
 };
