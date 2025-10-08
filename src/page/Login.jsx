@@ -1,14 +1,41 @@
-import React from 'react';
-import { Container, Row, Col, Form, Button, Card, Image } from 'react-bootstrap';
+import React, { useState } from 'react';
+import { Container, Row, Col, Form, Button, Card, Image, Spinner } from 'react-bootstrap';
 import '../styles/Login.css'; 
 import { useNavigate } from 'react-router-dom';
+import axios from '../config/axios.js';
+import { toast } from 'react-toastify';
 
 const LoginPage = () => {
-  const navigate = useNavigate()
-  const onLogin = (e) => {
-    e.preventDefault()
-    navigate("/")
-  }
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const onLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const {data} = await axios.post('/auth/login', {
+        EMAIL: formData.email,
+        PASSWORD: formData.password,
+      });
+
+      setLoading(false);
+      localStorage.setItem('token', data.data.accessToken);
+      navigate('/');
+    } catch (error) {
+      setLoading(false);
+      toast.error(error.response?.data?.message || "Hello");
+    }
+  };
+
   return (
     <Container fluid className="login-container">
       <Row className="h-100">
@@ -33,16 +60,16 @@ const LoginPage = () => {
               <Form onSubmit={onLogin}>
                 <Form.Group className="mb-3" controlId="formEmail">
                   <Form.Label>Email address</Form.Label>
-                  <Form.Control type="email" placeholder="Enter email" />
+                  <Form.Control type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Enter email" />
                 </Form.Group>
 
                 <Form.Group className="mb-3" controlId="formPassword">
                   <Form.Label>Password</Form.Label>
-                  <Form.Control type="password" placeholder="Enter password" />
+                  <Form.Control type="password" name="password" value={formData.password} onChange={handleChange} placeholder="Enter password" />
                 </Form.Group>
 
-                <Button variant="primary" type="submit" className="w-100 mb-3">
-                  Login
+                  <Button variant="primary" type="submit" className="w-100 mb-3" disabled={loading}>
+                  {loading ? <Spinner /> : 'Login'}
                 </Button>
               </Form>
             </Card.Body>

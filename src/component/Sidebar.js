@@ -1,33 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { IoIosLogOut } from 'react-icons/io';
 import { CgProfile } from "react-icons/cg";
 import SideMenu from './sidebar/SideMenu';
 import Swal from "sweetalert2";
 import { useNavigate } from 'react-router-dom';
 import { Form, Button, Modal, Col, Row } from 'react-bootstrap';
+import { toast } from 'react-toastify';
+import axios from '../config/axios.js';
 
 const Sidebar = ({ togel, handleToggle }) => {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('account');
   const [activeMenu, setActiveMenu] = useState('/');
   const [showProfileModal, setShowProfileModal] = useState(false);
+
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    day: '',
-    month: '',
-    year: '',
-    gender: '',
+    ID: '',
+    INITIAL: '',
+    NAME: '',
+    EMAIL: '',
+    NO_TELEPHONE: '',
+    COMPANY_ID: '',
+    ADDRESS: '',
+    POSITION: '',
+    LEVEL: '',
+    SUMMARY: '',
+    USER_PATH: '',
+    GENDER: '',
   });
+
 
   const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
+    ID: '',
+    CURRENT_PASSWORD: '',
+    NEW_PASSWORD: '',
+    CONFIRM_PASSWORD: '',
   });
-
-
 
   const dummyMenus = [
     { id: 1, title: "Main Menu", path: "/", icon: "home" },
@@ -36,13 +44,25 @@ const Sidebar = ({ togel, handleToggle }) => {
   ];
 
 
+  useEffect(() => {
+    if (showProfileModal && activeTab === 'account') {
+      fetchProfile();
+    }
+  }, [showProfileModal, activeTab]);
+
+  const fetchProfile = async () => {
+    try {
+      const { data } = await axios.get('/auth/profile');
+      setFormData(data.data)
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to fetch profile');
+    }
+  };
 
   const handleOpenProfile = () => {
     setShowProfileModal(true);
-    setActiveTab('account'); // Reset ke tab account saat dibuka
+    setActiveTab('account');
   };
-
-
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -54,20 +74,44 @@ const Sidebar = ({ togel, handleToggle }) => {
     setPasswordData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmitAccount = (e) => {
+  const handleSubmitAccount = async (e) => {
     e.preventDefault();
-    alert("Profile updated successfully!");
+
+    try {
+      await axios.put('/auth/profile', formData);
+
+      toast.success('Profile updated successfully!');
+      setShowProfileModal(false);
+
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update profile');
+    }
   };
 
-  const handleSubmitPassword = (e) => {
+  const handleSubmitPassword = async (e) => {
     e.preventDefault();
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert("New password and confirm password do not match.");
+
+    if (passwordData.NEW_PASSWORD !== passwordData.CONFIRM_PASSWORD) {
+      toast.warn("New password and confirm password do not match.");
       return;
     }
-    alert("Password updated successfully!");
-    // Reset form
-    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+
+
+    const dataToSend = {
+      ...passwordData,
+      ID: formData.ID,
+    };
+
+    try {
+      await axios.put('/auth/password', dataToSend);
+
+      toast.success('Password updated successfully!');
+      setPasswordData({ ID: '', CURRENT_PASSWORD: '', NEW_PASSWORD: '', CONFIRM_PASSWORD: '' });
+      setShowProfileModal(false);
+
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update password');
+    }
   };
 
   const handleLogout = async () => {
@@ -82,11 +126,11 @@ const Sidebar = ({ togel, handleToggle }) => {
       reverseButtons: true,
     });
 
-
     if (resp.isConfirmed) {
+      localStorage.removeItem('token');
       navigate("/login");
     }
-  }
+  };
 
   return (
     <nav className={`sidebar ${togel ? 'closed' : ''} shadow-sm`}>
@@ -96,7 +140,7 @@ const Sidebar = ({ togel, handleToggle }) => {
         </Modal.Header>
         <Modal.Body className='body-account'>
           <Row>
-            <Col md={4} className="border-end">
+            <Col md={3} className="border-end">
               <div className="list-group">
                 <button
                   className={`list-group-item list-group-item-action ${activeTab === 'account' ? 'active' : ''}`}
@@ -113,115 +157,114 @@ const Sidebar = ({ togel, handleToggle }) => {
               </div>
             </Col>
 
-            <Col md={8}>
+            <Col md={9}>
               {activeTab === 'account' ? (
-                // Form Account Details
                 <Form onSubmit={handleSubmitAccount}>
-                  <Form.Group className="mb-3" controlId="firstName">
-                    <Form.Label>First Name *</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="firstName"
-                      value={formData.firstName}
-                      onChange={handleChange}
-                      required
-                    />
-                  </Form.Group>
-
-                  <Form.Group className="mb-3" controlId="lastName">
-                    <Form.Label>Last Name *</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="lastName"
-                      value={formData.lastName}
-                      onChange={handleChange}
-                      required
-                    />
-                  </Form.Group>
-
-                  <Form.Group className="mb-3" controlId="email">
-                    <Form.Label>E-Mail *</Form.Label>
-                    <Form.Control
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      required
-                    />
-                  </Form.Group>
-
-                  <Form.Group className="mb-3" controlId="dob">
-                    <Form.Label>Date of Birth (Optional)</Form.Label>
-                    <Row>
-                      <Col>
-                        <Form.Select
-                          name="day"
-                          value={formData.day}
+                  <Row>
+                    <Col md={4}>
+                      <Form.Group className="mb-3" controlId="initial">
+                        <Form.Label>Initial *</Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="INITIAL"
+                          value={formData.INITIAL}
                           onChange={handleChange}
-                        >
-                          <option value="">Day</option>
-                          {[...Array(31)].map((_, i) => (
-                            <option key={i + 1} value={i + 1}>{i + 1}</option>
-                          ))}
-                        </Form.Select>
-                      </Col>
-                      <Col>
-                        <Form.Select
-                          name="month"
-                          value={formData.month}
+                          required
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={8}>
+                      <Form.Group className="mb-3" controlId="name">
+                        <Form.Label>Full Name *</Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="NAME"
+                          value={formData.NAME}
                           onChange={handleChange}
-                        >
-                          <option value="">Month</option>
-                          {["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"].map(month => (
-                            <option key={month} value={month}>{month}</option>
-                          ))}
-                        </Form.Select>
-                      </Col>
-                      <Col>
-                        <Form.Select
-                          name="year"
-                          value={formData.year}
+                          required
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={12}>
+                      <Form.Group className="mb-3" controlId="email">
+                        <Form.Label>Email *</Form.Label>
+                        <Form.Control
+                          type="email"
+                          name="EMAIL"
+                          value={formData.EMAIL}
                           onChange={handleChange}
+                          required
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={12}>
+                      <Form.Group className="mb-3" controlId="gender">
+                        <Form.Label>Title *</Form.Label>
+                        <Form.Select
+                          name="GENDER"
+                          value={formData.GENDER}
+                          onChange={handleChange}
+                          required
                         >
-                          <option value="">Year</option>
-                          {[...Array(50)].map((_, i) => {
-                            const year = new Date().getFullYear() - 10 - i;
-                            return <option key={year} value={year}>{year}</option>;
-                          })}
+                          <option value="">Select Gender</option>
+                          <option value="Tuan">Tuan</option>
+                          <option value="Nyonya">Nyonya</option>
+                          <option value="Nona">Nona</option>
                         </Form.Select>
-                      </Col>
-                    </Row>
-                  </Form.Group>
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group className="mb-3" controlId="noTelephone">
+                        <Form.Label>Phone Number *</Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="NO_TELEPHONE"
+                          value={formData.NO_TELEPHONE}
+                          onChange={handleChange}
+                          required
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
 
-                  <Form.Group className="mb-3" controlId="gender">
-                    <Form.Label>Gender (Optional)</Form.Label>
-                    <Form.Select
-                      name="gender"
-                      value={formData.gender}
-                      onChange={handleChange}
-                    >
-                      <option value="">Select gender</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Other">Other</option>
-                    </Form.Select>
-                  </Form.Group>
+                      <Form.Group className="mb-3" controlId="position">
+                        <Form.Label>Position (Optional)</Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="POSITION"
+                          value={formData.POSITION}
+                          onChange={handleChange}
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={12}>
+                      <Form.Group className="mb-3" controlId="address">
+                        <Form.Label>Address (Optional)</Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="ADDRESS"
+                          value={formData.ADDRESS}
+                          onChange={handleChange}
+                        />
+                      </Form.Group>
+                    </Col>
+
+                  </Row>
 
                   <div className="d-flex justify-content-end mt-4">
                     <Button variant="primary" type="submit">
-                      Update
+                      Update Profile
                     </Button>
                   </div>
                 </Form>
               ) : (
-                // Form Change Password
                 <Form onSubmit={handleSubmitPassword}>
                   <Form.Group className="mb-3" controlId="currentPassword">
                     <Form.Label>Current Password *</Form.Label>
                     <Form.Control
                       type="password"
-                      name="currentPassword"
-                      value={passwordData.currentPassword}
+                      name="CURRENT_PASSWORD"
+                      value={passwordData.CURRENT_PASSWORD}
                       onChange={handlePasswordChange}
                       required
                     />
@@ -231,8 +274,8 @@ const Sidebar = ({ togel, handleToggle }) => {
                     <Form.Label>New Password *</Form.Label>
                     <Form.Control
                       type="password"
-                      name="newPassword"
-                      value={passwordData.newPassword}
+                      name="NEW_PASSWORD"
+                      value={passwordData.NEW_PASSWORD}
                       onChange={handlePasswordChange}
                       required
                     />
@@ -242,8 +285,8 @@ const Sidebar = ({ togel, handleToggle }) => {
                     <Form.Label>Confirm New Password *</Form.Label>
                     <Form.Control
                       type="password"
-                      name="confirmPassword"
-                      value={passwordData.confirmPassword}
+                      name="CONFIRM_PASSWORD"
+                      value={passwordData.CONFIRM_PASSWORD}
                       onChange={handlePasswordChange}
                       required
                     />
@@ -260,9 +303,11 @@ const Sidebar = ({ togel, handleToggle }) => {
           </Row>
         </Modal.Body>
       </Modal>
+
       <div className="image-text" onClick={() => navigate("/")}>
         <span className="image">Vendor Portal</span>
       </div>
+
       <div className={`toggle-button ${togel ? 'collapsed' : ''}`} onClick={handleToggle}>
         <div className="toggle-circle">
           {togel ? (
@@ -276,6 +321,7 @@ const Sidebar = ({ togel, handleToggle }) => {
           )}
         </div>
       </div>
+
       <div className="menu-bar">
         <div className="menu">
           <ul className="menu-links" style={{ paddingLeft: 0 }}>
