@@ -3,15 +3,17 @@ import { IoIosLogOut } from 'react-icons/io';
 import { CgProfile } from "react-icons/cg";
 import SideMenu from './sidebar/SideMenu';
 import Swal from "sweetalert2";
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Form, Button, Modal, Col, Row } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 import axios from '../config/axios.js';
 
 const Sidebar = ({ togel, handleToggle }) => {
   const navigate = useNavigate();
+    const location = useLocation();
+
+
   const [activeTab, setActiveTab] = useState('account');
-  const [activeMenu, setActiveMenu] = useState('/');
   const [showProfileModal, setShowProfileModal] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -38,9 +40,12 @@ const Sidebar = ({ togel, handleToggle }) => {
   });
 
   const dummyMenus = [
-    { id: 1, title: "Main Menu", path: "/", icon: "home" },
-    { id: 2, title: "MPO", path: "/mpo", icon: "clipboard" },
-    { id: 3, title: "Lot Batch", path: "/lot-batch", icon: "calendar" },
+    { title: "Main Menu", path: "/", icon: "home" },
+    { title: "MPO", path: "/mpo", icon: "clipboard" },
+    { title: "Lot Batch", path: "/lot-batch", icon: "calendar" },
+    { title: "List Company", path: "/company", icon: "document" },
+    { title: "Role", path: "/role", icon: "cube" },
+    { title: "User", path: "/user", icon: "checkmark" },
   ];
 
 
@@ -325,14 +330,13 @@ const Sidebar = ({ togel, handleToggle }) => {
       <div className="menu-bar">
         <div className="menu">
           <ul className="menu-links" style={{ paddingLeft: 0 }}>
-            {dummyMenus.map((menu) => (
+            {dummyMenus.map((menu, idx) => (
               <SideMenu
-                key={menu.id}
+                key={idx}
                 title={menu.title}
                 link={menu.path}
                 icon={menu.icon}
-                isActive={activeMenu === menu.path}
-                onClick={() => setActiveMenu(menu.path)}
+                isActive={location.pathname === menu.path}
               />
             ))}
           </ul>

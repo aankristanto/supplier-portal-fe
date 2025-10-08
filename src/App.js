@@ -9,6 +9,7 @@ import LoginPage from './page/Login';
 import MainLayout from './component/MainLayout';
 import { injectNavigate } from './config/axios';
 import { ToastContainer } from 'react-toastify';
+import CompanyPage from './page/company/Company';
 
 const AppLayout = () => {
   const navigate = useNavigate();
@@ -24,6 +25,7 @@ const AppLayout = () => {
         <Route path="/" element={<Home />} />
         <Route path="/lot-batch" element={<LotBatch />} />
         <Route path="/mpo" element={<Mpo />} />
+        <Route path="/company" element={<CompanyPage />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

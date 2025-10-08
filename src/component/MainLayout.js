@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import '../styles/MainLayout.css';
+import "ag-grid-community/styles/ag-grid.css";
+import "ag-grid-community/styles/ag-theme-alpine.css";
 import { Outlet } from 'react-router-dom';
 
 const MainLayout = () => {

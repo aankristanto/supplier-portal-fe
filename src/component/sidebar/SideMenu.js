@@ -18,7 +18,11 @@ const SideMenu = ({ title, link, icon, isActive, onClick }) => {
           {icon === "home" && "🏠"}
           {icon === "clipboard" && "📋"}
           {icon === "calendar" && "📅"}
-          {/* Tambahkan lebih banyak ikon sesuai kebutuhan */}
+          {icon === "scissors" && "✂️"}
+          {icon === "cube" && "📦"}
+          {icon === "checkmark" && "✅"}
+          {icon === "document" && "📄"}
+          {icon === "box" && "📦"}
         </div>
         <div className="text nav-text">{title}</div>
       </div>
