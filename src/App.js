@@ -50,7 +50,6 @@ function App() {
   return (
     <Router>
       <div className="App">
-
         <AppLayout />
       </div>
     </Router>
