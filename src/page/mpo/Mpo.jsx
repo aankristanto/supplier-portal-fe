@@ -124,7 +124,7 @@ const PurchaseOrderList = () => {
     if (!orderPurchasingId) return;
 
     try {
-      await axios.patch(`/purchase-order/main/${orderPurchasingId}`, { STATUS: status });
+      await axios.put(`/purchase-order/main/${orderPurchasingId}`, { MPO_STATUS: status });
       toast.success(`PO status updated to ${status}`);
       
       fetchPurchaseOrderById(orderPurchasingId);
