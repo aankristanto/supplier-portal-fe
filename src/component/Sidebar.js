@@ -38,16 +38,6 @@ const Sidebar = ({ togel, handleToggle }) => {
     NEW_PASSWORD: '',
     CONFIRM_PASSWORD: '',
   });
-
-  // const dummyMenus = [
-  //   { title: "Main Menu", path: "/", icon: "home" },
-  //   { title: "MPO", path: "/mpo", icon: "clipboard" },
-  //   { title: "Lot Batch", path: "/lot-batch", icon: "calendar" },
-  //   { title: "List Company", path: "/company", icon: "document" },
-  //   { title: "Role", path: "/role", icon: "cube" },
-  //   { title: "User", path: "/user", icon: "checkmark" },
-  // ];
-
   const fetchProfile = async () => {
     try {
       const { data } = await axios.get('/auth/profile');
@@ -327,7 +317,7 @@ const Sidebar = ({ togel, handleToggle }) => {
 
       <div className={`toggle-button ${togel ? 'collapsed' : ''}`} onClick={handleToggle}>
         <div className="toggle-circle">
-          {togel ? (
+          {!togel ? (
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
