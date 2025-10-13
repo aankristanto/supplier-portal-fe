@@ -19,7 +19,6 @@ const SideMenu = ({ title, link, icon, isActive, onClick }) => {
           {icon === "clipboard" && "📋"}
           {icon === "calendar" && "📅"}
           {icon === "scissors" && "✂️"}
-          {icon === "cube" && "📦"}
           {icon === "checkmark" && "✅"}
           {icon === "document" && "📄"}
           {icon === "box" && "📦"}

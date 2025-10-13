@@ -1,0 +1,19 @@
+.schedule-list-container {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.schedule-item {
+  transition: box-shadow 0.2s;
+}
+.schedule-item:hover {
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+
+.schedule-item .btn-outline-secondary {
+  background-color: #f8f9fa;
+  border-color: #dee2e6;
+}
+.schedule-item .btn-outline-secondary:hover {
+  background-color: #e9ecef;
+}

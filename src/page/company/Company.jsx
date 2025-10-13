@@ -6,8 +6,7 @@ import { Button, Modal, Form, Row, Col } from 'react-bootstrap';
 import { toast } from 'react-toastify';
 import axios from '../../config/axios.js';
 import { defaultColDef } from '../../util/general.js';
-import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-alpine.css";
+
 
 const CompanyPage = () => {
   const [rowData, setRowData] = useState([]);
