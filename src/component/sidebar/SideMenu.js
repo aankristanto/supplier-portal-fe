@@ -21,6 +21,7 @@ const SideMenu = ({ title, link, icon, isActive, onClick }) => {
           {icon === "scissors" && "✂️"}
           {icon === "checkmark" && "✅"}
           {icon === "document" && "📄"}
+          {icon === "settings" && "⚙️"}
           {icon === "box" && "📦"}
         </div>
         <div className="text nav-text">{title}</div>

@@ -131,6 +131,24 @@ const DeliverySummaryList = () => {
       width: 200,
     },
     {
+      headerName: "Supplier Item Id",
+      field: "SUPPLIER_ITEM_ID",
+      width: 150,
+      editable: false,
+    },
+    {
+      headerName: "Supplier Item Code",
+      field: "SUPPLIER_CODE",
+      width: 200,
+      editable: false,
+    },
+    {
+      headerName: "Supplier Item Desc",
+      field: "SUPPLIER_DESCRIPTION",
+      width: 200,
+      editable: false,
+    },
+    {
       headerName: "PO Qty",
       field: "PURCHASE_ORDER_QTY",
       width: 100,
@@ -149,25 +167,12 @@ const DeliverySummaryList = () => {
       cellStyle: {color: "blue", fontWeight: "bold"},
     },
     {
-      headerName: "Supplier Code",
-      field: "INPUT_SUPPLIER_CODE",
-      width: 150,
-      editable: true,
-      cellEditor: "agTextCellEditor",
-    },
-    {
-      headerName: "Supplier Description",
-      field: "INPUT_SUPPLIER_DESC",
-      width: 200,
-      editable: true,
-      cellEditor: "agTextCellEditor",
-    },
-    {
       headerName: "Allocate Qty",
       field: "INPUT_QUANTITY",
       width: 120,
       editable: true,
       cellEditor: "agNumberCellEditor",
+      cellStyle: { backgroundColor: '#fff3cd' },
       cellEditorParams: {
         min: 0,
         max: (params) => params.data.QUANTITY_AVAILABLE || 0,
@@ -356,8 +361,6 @@ const DeliverySummaryList = () => {
       const allocationsToSave = notConsumedItems.map((item) => ({
         PURCHASE_ORDER_DETAIL_ID: item.ID,
         DELIVERY_SUMMARY_ID: currentSchedule.ID,
-        SUPPLIER_CODE: item.INPUT_SUPPLIER_CODE,
-        SUPPLIER_DESC: item.INPUT_SUPPLIER_DESC,
         QUANTITY: item.INPUT_QUANTITY,
         PURCHASE_ORDER_ID: item.PURCHASE_ORDER_ID,
       }));
@@ -503,8 +506,6 @@ const DeliverySummaryList = () => {
 
       const itemsWithInputs = data.data.map((item) => ({
         ...item,
-        INPUT_SUPPLIER_CODE: item.SUPPLIER_CODE || "",
-        INPUT_SUPPLIER_DESC: item.SUPPLIER_DESC || "",
         INPUT_QUANTITY: item.QUANTITY_USED || 0,
       }));
 

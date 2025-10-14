@@ -27,7 +27,7 @@ const Home = () => {
       <div className="logo-container text-center mb-4">
         <Card className="shadow-sm p-4 logo-card">
               <h1 className="gradient-text">PT Sumber Bintang Rejeki</h1>
-              <p>Underware factory in indonesia</p>
+              <p>Manufacture of Ladies Underwear and Lingerie</p>
         </Card>
       </div>
 

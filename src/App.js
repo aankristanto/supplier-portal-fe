@@ -13,6 +13,7 @@ import CompanyPage from './page/company/Company';
 import UserPage from './page/user/User';
 import DeliveryPage from './page/delivery/Delivery';
 import SummaryPage from './page/summary/Summary';
+import MasterItemPage from './page/masterItem/MasterItem';
 
 const AppLayout = () => {
   const navigate = useNavigate();
@@ -32,6 +33,7 @@ const AppLayout = () => {
         <Route path='/list-delivery' element={<DeliveryPage />} />
         <Route path="/company" element={<CompanyPage />} />
         <Route path="/user" element={<UserPage />} />
+        <Route path="/master-item" element={<MasterItemPage />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
