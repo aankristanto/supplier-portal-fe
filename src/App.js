@@ -11,6 +11,7 @@ import { injectNavigate } from './config/axios';
 import { ToastContainer } from 'react-toastify';
 import CompanyPage from './page/company/Company';
 import UserPage from './page/user/User';
+import DeliveryPage from './page/delivery/Delivery';
 import SummaryPage from './page/summary/Summary';
 
 const AppLayout = () => {
@@ -28,6 +29,7 @@ const AppLayout = () => {
         <Route path="/lot-batch" element={<LotBatch />} />
         <Route path="/mpo" element={<Mpo />} />
         <Route path="/delivery-schedule" element={<SummaryPage />} />
+        <Route path='/list-delivery' element={<DeliveryPage />} />
         <Route path="/company" element={<CompanyPage />} />
         <Route path="/user" element={<UserPage />} />
       </Route>

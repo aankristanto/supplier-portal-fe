@@ -925,7 +925,7 @@ const SummaryPage = () => {
       {!orderPurchasingId ? (
         <>
           <div className="d-flex justify-content-between align-items-center mb-4">
-            <h5>Summary (Proccess)</h5>
+            <h5>Delivery Schedule |  MPO (Proccess)</h5>
           </div>
           <div
             className="ag-theme-alpine"
