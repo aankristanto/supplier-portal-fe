@@ -609,6 +609,7 @@ const DeliverySummaryList = () => {
     if (currentSchedule?.ID) {
       fetchPurchaseOrdersListSell(currentSchedule?.ID);
     }
+    // eslint-disable-next-line
   }, [purchaseOrders]);
 
   return (
