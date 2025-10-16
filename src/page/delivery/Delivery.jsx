@@ -1440,7 +1440,8 @@ const DeliverySummaryList = () => {
             onSelect={(e) => changeTab(e)}
           >
             <Tab eventKey="split" title="Split Detail">
-              <Card className="my-4">
+              
+              {!currentSchedule.PACK_ALREADY && <Card className="my-4">
                 <Card.Header>
                   <h5>Select Purchase Orders</h5>
                 </Card.Header>
@@ -1463,7 +1464,7 @@ const DeliverySummaryList = () => {
                     />
                   </div>
                 </Card.Body>
-              </Card>
+              </Card> }
               <Card>
                 <Card.Header>
                   <div className="d-flex justify-content-between align-items-center">
@@ -1476,6 +1477,9 @@ const DeliverySummaryList = () => {
                       >
                         Export Excel
                       </Button>
+                      {
+                        !currentSchedule.PACK_ALREADY &&
+                      
                       <Button
                         className="mx-3"
                         variant="success"
@@ -1484,6 +1488,7 @@ const DeliverySummaryList = () => {
                       >
                         Save & Add Purchsae Order List
                       </Button>
+                      }
                     </div>
                   </div>
                 </Card.Header>
