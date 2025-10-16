@@ -1,0 +1,36 @@
+.circle-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 20px 0;
+  }
+  .circle {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: conic-gradient(
+      #4CAF50 0% 60%,
+      #FFC107 60% 75%,
+      #FF5722 75% 100%
+    );
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 1.5rem;
+    font-weight: bold;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+  .circle-inner {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #333;
+    font-size: 1.2rem;
+    font-weight: bold;
+  }

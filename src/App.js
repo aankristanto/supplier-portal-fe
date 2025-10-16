@@ -2,7 +2,6 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 
 import Home from "./page/home/Home"
-import LotBatch from "./page/lotBatch/LotBatch"
 import Mpo from './page/mpo/Mpo'
 import NotFound from './page/NotFound';
 import LoginPage from './page/Login';
@@ -14,6 +13,7 @@ import UserPage from './page/user/User';
 import DeliveryPage from './page/delivery/Delivery';
 import SummaryPage from './page/summary/Summary';
 import MasterItemPage from './page/masterItem/MasterItem';
+import PackingListPage from './page/packingList/PackingList';
 
 const AppLayout = () => {
   const navigate = useNavigate();
@@ -27,13 +27,13 @@ const AppLayout = () => {
       <Route path="/login" element={<LoginPage />} />
       <Route element={<MainLayout />}>
         <Route path="/" element={<Home />} />
-        <Route path="/lot-batch" element={<LotBatch />} />
         <Route path="/mpo" element={<Mpo />} />
         <Route path="/delivery-schedule" element={<SummaryPage />} />
         <Route path='/list-delivery' element={<DeliveryPage />} />
         <Route path="/company" element={<CompanyPage />} />
         <Route path="/user" element={<UserPage />} />
         <Route path="/master-item" element={<MasterItemPage />} />
+        <Route path="/packing-list" element={<PackingListPage />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

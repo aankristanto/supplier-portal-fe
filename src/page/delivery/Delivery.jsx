@@ -1,11 +1,31 @@
 import React, {useEffect, useRef, useState} from "react";
 import {AgGridReact} from "ag-grid-react";
-import {Button, Card, Col, Form, Modal, Row, Spinner} from "react-bootstrap";
+import {Pie} from "react-chartjs-2";
+import {Chart as ChartJS, ArcElement, Tooltip, Legend} from "chart.js";
+import * as XLSX from "xlsx";
+
+import {
+  Button,
+  Card,
+  Col,
+  Container,
+  Form,
+  Modal,
+  Row,
+  Spinner,
+  Tab,
+  Table,
+  Tabs,
+} from "react-bootstrap";
+
 import {GrTrash, GrAdd} from "react-icons/gr";
 import {toast} from "react-toastify";
 import axios from "../../config/axios";
 import Swal from "sweetalert2";
-import {defaultColDef} from "../../util/general";
+import {colorListSummary, defaultColDef} from "../../util/general";
+import "./delivery.css";
+
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 const DeliverySummaryList = () => {
   const poGridRef = useRef(null);
@@ -14,13 +34,21 @@ const DeliverySummaryList = () => {
   const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [deliveryMode, setDeliveryMode] = useState([]);
 
+  const [packingList, setPackingList] = useState([]);
+
   const [selectedPurchaseOrders, setSelectedPurchaseOrders] = useState([]);
   const [showNotConsumeModal, setShowNotConsumeModal] = useState(false);
+  const [activeTab, setActiveTab] = useState("split");
   const [notConsumedItems, setNotConsumedItems] = useState([]);
 
+  const [modalShow, setModalShow] = useState(false);
+  const [modalData, setModalData] = useState(null);
+
   const [deliveryScheduleList, setDeliveryScheduleList] = useState([]);
+  const [packingListSummary, setPackingListSummary] = useState([]);
 
   const [loading, setLoading] = useState(false);
+  const [loading2, setLoading2] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -149,6 +177,12 @@ const DeliverySummaryList = () => {
       editable: false,
     },
     {
+      headerName: "Purchase OUM",
+      field: "PURCHASE_UOM",
+      width: 100,
+      cellStyle: {fontWeight: "bold"},
+    },
+    {
       headerName: "PO Qty",
       field: "PURCHASE_ORDER_QTY",
       width: 100,
@@ -172,7 +206,7 @@ const DeliverySummaryList = () => {
       width: 120,
       editable: true,
       cellEditor: "agNumberCellEditor",
-      cellStyle: { backgroundColor: '#fff3cd' },
+      cellStyle: {backgroundColor: "#fff3cd"},
       cellEditorParams: {
         min: 0,
         max: (params) => params.data.QUANTITY_AVAILABLE || 0,
@@ -184,6 +218,39 @@ const DeliverySummaryList = () => {
     },
   ];
 
+  const packingListColumnDefs = [
+    {
+      headerName: "ITEM ID",
+      field: "ITEM.ITEM_ID",
+      width: 130,
+    },
+    {
+      headerName: "ITEM CODE",
+      field: "ITEM.CODE",
+      width: 130,
+    },
+    {
+      headerName: "SIZE",
+      field: "SIZE",
+      width: 250,
+    },
+    {
+      headerName: "COLOR",
+      field: "COLOR",
+      width: 150,
+    },
+    {
+      headerName: "PACK",
+      field: "PACK",
+      width: 150,
+    },
+    {
+      headerName: "Quantity / PCS",
+      field: "QUANTITY",
+      width: 150,
+    },
+  ];
+
   const deliverySummaryLineColumnDefs = [
     {
       headerName: "MPO ID",
@@ -191,19 +258,24 @@ const DeliverySummaryList = () => {
       width: 130,
     },
     {
-      headerName: "Order Code",
-      field: "PURCHASE_ORDER_DETAIL.ORDER_CODE",
-      width: 130,
-    },
-    {
-      headerName: "Item Code",
-      field: "PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_ID",
-      width: 130,
-    },
-    {
       headerName: "Item Description",
       field: "PURCHASE_ORDER_DETAIL.ITEM_CODE_DESCRIPTION",
       width: 250,
+    },
+    {
+      headerName: "Supplier Item ID",
+      field: "PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID",
+      width: 150,
+    },
+    {
+      headerName: "Supplier Item Code",
+      field: "PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.CODE",
+      width: 150,
+    },
+    {
+      headerName: "Supplier Item Description",
+      field: "PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.DESCRIPTION",
+      width: 150,
     },
     {
       headerName: "Color",
@@ -221,26 +293,10 @@ const DeliverySummaryList = () => {
       width: 80,
     },
     {
-      headerName: "PO Qty",
-      field: "PURCHASE_ORDER_DETAIL.PURCHASE_ORDER_QTY",
-      width: 100,
-      cellStyle: {fontWeight: "bold"},
-    },
-    {
-      headerName: "Scheduled Qty",
+      headerName: "Quantity",
       field: "QUANTITY",
       width: 120,
       cellStyle: {color: "green", fontWeight: "bold"},
-    },
-    {
-      headerName: "Supplier Code",
-      field: "SUPPLIER_CODE",
-      width: 150,
-    },
-    {
-      headerName: "Supplier Description",
-      field: "SUPPLIER_DESC",
-      width: 150,
     },
   ];
 
@@ -290,6 +346,23 @@ const DeliverySummaryList = () => {
       toast.error(
         err.response?.data?.message ?? "Failed to fetch delivery schedules"
       );
+    }
+  };
+
+  const fetchPackingList = async (deliverySummaryId) => {
+    if (!deliverySummaryId) return;
+    try {
+      const {data} = await axios.get("/packing/list", {
+        params: {
+          DELIVERY_SUMMARY_ID: deliverySummaryId,
+        },
+      });
+      setPackingList(data.data || []);
+    } catch (err) {
+      toast.error(
+        err.response?.data?.message ?? "Failed to fetch packing list"
+      );
+      setPackingList([]);
     }
   };
 
@@ -351,13 +424,91 @@ const DeliverySummaryList = () => {
     }
   };
 
+  const importExcelPackingList = async (file) => {
+    if (!file) return;
+    if (!currentSchedule?.ID) {
+      toast.warn("Please save the schedule first");
+      return;
+    }
+
+    setLoading2(true);
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, {type: "array"});
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+      const requiredColumns = [
+        "Box Seq/No",
+        "MPO",
+        "Supplier Item ID",
+        "Size",
+        "Pack",
+        "PCS",
+      ];
+      const missingColumns = requiredColumns.filter(
+        (col) => !jsonData[0]?.hasOwnProperty(col)
+      );
+      if (missingColumns.length > 0) {
+        toast.error(`Missing required columns: ${missingColumns.join(", ")}`);
+        return;
+      }
+
+      const transformedData = jsonData
+        .map((row) => ({
+          BOX_SEQ: row["Box Seq/No"],
+          MPO_ID: row["MPO"],
+          ITEM_ID: row["Supplier Item ID"],
+          SIZE: row["Size"],
+          COLOR: row["Color"],
+          PACK: row["Pack"],
+          QTY: parseFloat(row["PCS"]) || 0,
+          BARCODE_CODE: row["Barcode / QR Code Box"],
+        }))
+        .filter((item) => item.BOX_SEQ && item.MPO_ID && item.ITEM_ID);
+
+      if (transformedData.length === 0) {
+        toast.warn("No valid data found in the file");
+        return;
+      }
+
+      try {
+        await axios.post("/packing/list/bulk", {
+          DELIVERY_SUMMARY_ID: currentSchedule.ID,
+          LIST_DETAIL: transformedData,
+        });
+        setLoading2(false);
+      } catch (err) {
+        setLoading2(false);
+        toast.error(err.response?.data?.message ?? "Failed to import excel");
+      }
+
+      toast.success("Packing list imported successfully!");
+      fetchPackingList(currentSchedule.ID);
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const handleFileUpload = (e) => {
+    if (loading) {
+      toast.warn("Proccess file stil running, please wait");
+      return;
+    }
+    const file = e.target.files[0];
+    if (file) {
+      importExcelPackingList(file);
+    }
+  };
+
   const handleSaveAllocations = async () => {
     if (loading) return;
     if (!currentSchedule?.ID) return;
 
     try {
       setLoading(true);
-
       const allocationsToSave = notConsumedItems.map((item) => ({
         PURCHASE_ORDER_DETAIL_ID: item.ID,
         DELIVERY_SUMMARY_ID: currentSchedule.ID,
@@ -376,8 +527,10 @@ const DeliverySummaryList = () => {
 
       toast.success("Allocations saved successfully!");
       setShowNotConsumeModal(false);
-      fetchDeliverySummariesList(currentSchedule.ID);
       setLoading(false);
+      setTimeout(() => {
+        fetchDeliverySummariesList(currentSchedule.ID);
+      }, 400);
     } catch (err) {
       toast.error(err.response?.data?.message ?? "Failed to save allocations");
       setLoading(false);
@@ -396,6 +549,36 @@ const DeliverySummaryList = () => {
 
     if (!isSame) {
       setSelectedPurchaseOrders(selectedData);
+    }
+  };
+
+  const openDetailModal = (packingListData) => {
+    setModalData(packingListData);
+    setModalShow(true);
+  };
+
+  const handleDelete = async (id) => {
+    const confirm = await Swal.fire({
+      title: "Are you sure?",
+      text: "You won't be able to revert this!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "No, cancel!",
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    try {
+      await axios.delete(`/packing/list/${id}`);
+      toast.success("Packing list deleted successfully");
+      fetchPackingList(currentSchedule.ID); // Refresh data
+    } catch (err) {
+      toast.error(
+        err.response?.data?.message ?? "Failed to delete packing list"
+      );
     }
   };
 
@@ -443,12 +626,31 @@ const DeliverySummaryList = () => {
       toast.warn("Please fill required fields: Packing Slip No, Invoice No");
       return;
     }
-
     try {
       setLoading(true);
       let response = null;
 
       if (isEditing) {
+        const {data: respData} = await axios.put(
+          `/v2/delivery/summary-list/${currentSchedule.ID}`,
+          {PURCHASE_ORDER_LIST: selectedPurchaseOrders.map((item) => item.ID)}
+        );
+        if (respData.data) {
+          const confirm = await Swal.fire({
+            title: "Change MPO?",
+            html: "An MPO is already active.<br><strong>If you proceed, the current MPO data will be permanently lost.</strong>",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Yes, Change MPO!",
+            cancelButtonText: "Cancel",
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#3085d6",
+            reverseButtons: true,
+          });
+          setLoading(false);
+          if (!confirm.isConfirmed) return;
+        }
+
         const {data} = await axios.put(
           `/v2/delivery/summary/${currentSchedule.ID}`,
           {
@@ -471,10 +673,11 @@ const DeliverySummaryList = () => {
 
       handleEditSchedule(response);
       setLoading(false);
+      return response?.ID;
     } catch (err) {
-      toast.error(err.response?.data?.message ?? "Operation failed");
-    } finally {
       setLoading(false);
+      toast.error(err.response?.data?.message ?? "Operation failed");
+      return null;
     }
   };
 
@@ -485,23 +688,19 @@ const DeliverySummaryList = () => {
     }
 
     try {
-      await handleSave();
-      await fetchItemNotCounsume();
+      const idReq = await handleSave();
+      if (!idReq) return;
+      await fetchItemNotCounsume(idReq);
       setShowNotConsumeModal(true);
     } catch (err) {
       toast.error(err.response?.data?.message ?? "Failed to open modal");
     }
   };
 
-  const fetchItemNotCounsume = async () => {
-    if (!currentSchedule?.ID) {
-      toast.error("Delivery summary ID is required");
-      return;
-    }
-
+  const fetchItemNotCounsume = async (id) => {
     try {
       const {data} = await axios.get("/purchase-order/detail-delivery", {
-        params: {DELIVERY_SUMMARY_ID: currentSchedule.ID},
+        params: {DELIVERY_SUMMARY_ID: id},
       });
 
       const itemsWithInputs = data.data.map((item) => ({
@@ -510,6 +709,19 @@ const DeliverySummaryList = () => {
       }));
 
       setNotConsumedItems(itemsWithInputs);
+    } catch (err) {
+      toast.error(err.response?.data?.message ?? "Failed to fetch items");
+      setNotConsumedItems([]);
+    }
+  };
+
+  const fetchDeliveryBalance = async (id) => {
+    try {
+      const {data} = await axios.get("/packing/list-balance", {
+        params: {DELIVERY_SUMMARY_ID: id},
+      });
+
+      setPackingListSummary(data.data);
     } catch (err) {
       toast.error(err.response?.data?.message ?? "Failed to fetch items");
       setNotConsumedItems([]);
@@ -550,9 +762,102 @@ const DeliverySummaryList = () => {
     setNotConsumedItems(updatedItems);
   };
 
+  const exportToExcel = () => {
+    if (!deliveryScheduleList || deliveryScheduleList.length === 0) {
+      toast.warn("No data to export");
+      return;
+    }
+
+    const exportData = deliveryScheduleList.map((item) => ({
+      "MPO ID": item.PURCHASE_ORDER_DETAIL?.PURCHASE_ORDER_ID || "",
+      "Item Description":
+        item.PURCHASE_ORDER_DETAIL?.ITEM_CODE_DESCRIPTION || "",
+      "Supplier Item ID":
+        item.PURCHASE_ORDER_DETAIL?.MASTER_ITEM_SUPPLIER?.ITEM_ID || "",
+      "Supplier Item Code":
+        item.PURCHASE_ORDER_DETAIL?.MASTER_ITEM_SUPPLIER?.CODE || "",
+      "Supplier Item Description":
+        item.PURCHASE_ORDER_DETAIL?.MASTER_ITEM_SUPPLIER?.DESCRIPTION || "",
+      Color: item.PURCHASE_ORDER_DETAIL?.MATERIAL_ITEM_COLOR || "",
+      Size: item.PURCHASE_ORDER_DETAIL?.MATERIAL_ITEM_SIZE || "",
+      UOM: item.PURCHASE_ORDER_DETAIL?.PURCHASE_UOM || "",
+      Quantity: item.QUANTITY || 0,
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Delivery Summary");
+
+    XLSX.writeFile(wb, `delivery_summary_${currentSchedule.INVOICE_NO}.xlsx`);
+  };
+
+  const exportToExcelPackingList = () => {
+    let exportData = [];
+
+    packingList.forEach((box) => {
+      if (box.PACKING_LIST_DETAILS && box.PACKING_LIST_DETAILS.length > 0) {
+        box.PACKING_LIST_DETAILS.forEach((detail) => {
+          exportData.push({
+            "Box Seq/No": box.SEQUENCE,
+            "Barcode / QR Code Box": box.BARCODE_CODE || "",
+            MPO: detail.PURCHASE_ORDER_ID || "", // Ambil dari detail
+            "Supplier Item ID": detail.SUPPLIER_ITEM_ID || "",
+            Size: detail.SIZE || "",
+            Color: detail.COLOR || "",
+            Pack: detail.PACK || "",
+            PCS: detail.QUANTITY || 0,
+          });
+        });
+      } else {
+        exportData.push({
+          "Box Seq/No": box.SEQUENCE,
+          "Barcode / QR Code Box": box.BARCODE_CODE || "",
+          MPO: "",
+          "Supplier Item ID": "",
+          Size: "",
+          Color: "",
+          Pack: "",
+          PCS: "",
+        });
+      }
+    });
+
+    if (!packingList.length) {
+      exportData = [
+        {
+          "Box Seq/No": "",
+          "Barcode / QR Code Box": "",
+          MPO: "",
+          "Supplier Item ID": "",
+          Size: "",
+          Color: "",
+          Pack: "",
+          PCS: "",
+        },
+      ];
+    }
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "BOX");
+
+    XLSX.writeFile(
+      wb,
+      `Template Packing List INV: ${currentSchedule.INVOICE_NO}.xlsx`
+    );
+  };
+
   const handleBack = () => {
     setShowForm(false);
     resetForm();
+  };
+
+  const changeTab = (e) => {
+    if (e === "delivery") {
+      fetchDeliveryBalance(currentSchedule?.ID);
+      fetchPackingList(currentSchedule?.ID);
+    }
+    setActiveTab(e);
   };
 
   const resetForm = () => {
@@ -574,11 +879,11 @@ const DeliverySummaryList = () => {
       TRUCK_NUMBER: "",
       CONTAINER_NOTE: "",
     });
-    setSchedules([])
-    setPurchaseOrders([])
-    setSelectedPurchaseOrders([])
-    setNotConsumedItems([])
-    setDeliveryScheduleList([])
+    setSchedules([]);
+    setPurchaseOrders([]);
+    setSelectedPurchaseOrders([]);
+    setNotConsumedItems([]);
+    setDeliveryScheduleList([]);
     fetchDeliverySummaries();
     fetchDeliveryMode();
   };
@@ -591,7 +896,7 @@ const DeliverySummaryList = () => {
   useEffect(() => {
     if (poGridRef.current) {
       const api = poGridRef.current.api;
-      if (!api) return
+      if (!api) return;
       api.deselectAll();
 
       if (selectedPurchaseOrders.length > 0) {
@@ -613,8 +918,165 @@ const DeliverySummaryList = () => {
     // eslint-disable-next-line
   }, [purchaseOrders]);
 
+  const calculateSummary = () => {
+    if (!deliveryScheduleList || deliveryScheduleList.length === 0) {
+      return {labels: [], data: [], total: 0, balanceData: []};
+    }
+
+    const grouped = deliveryScheduleList.reduce((acc, item) => {
+      const code =
+        item.PURCHASE_ORDER_DETAIL?.MASTER_ITEM_SUPPLIER?.ITEM_ID || "Unknown";
+      if (!acc[code]) {
+        acc[code] = 0;
+      }
+      acc[code] += item.QUANTITY || 0;
+      return acc;
+    }, {});
+
+    const labels = Object.keys(grouped);
+    const data = Object.values(grouped);
+    const total = data.reduce((sum, qty) => sum + qty, 0);
+
+
+    const balanceData = labels.map((label) => {
+      const scheduledQty = grouped[label];
+      const packedQty = packingListSummary.find((p) => p.ITEM.ITEM_ID === label)?.TOTAL_QUANTITY || 0;
+      const balance = scheduledQty - packedQty;
+      return {label, scheduledQty, packedQty, balance};
+    });
+
+    return {labels, data, total, balanceData};
+  };
+  const summaryData = calculateSummary();
+
   return (
     <div className="container-fluid">
+      <input
+        id="fileInput"
+        type="file"
+        accept=".xlsx, .xls"
+        onChange={handleFileUpload}
+        style={{display: "none"}}
+      />
+      <Modal
+        show={modalShow}
+        onHide={() => setModalShow(false)}
+        size="lg"
+        aria-labelledby="modal-detail-title"
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title id="modal-detail-title">
+            Packing List Details: {modalData?.SEQUENCE}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {modalData ? (
+            <>
+              <div className="mb-3">
+                <h6>General Information</h6>
+                <Table bordered size="sm">
+                  <tbody>
+                    <tr>
+                      <td>
+                        <strong>Sequence:</strong>
+                      </td>
+                      <td>{modalData.SEQUENCE}</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <strong>Delivery Summary ID:</strong>
+                      </td>
+                      <td>{modalData.DELIVERY_SUMMARY_ID}</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <strong>Created At:</strong>
+                      </td>
+                      <td>{new Date(modalData.CREATED_AT).toLocaleString()}</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <strong>Created By:</strong>
+                      </td>
+                      <td>{modalData.CREATED_ID || "N/A"}</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <strong>Updated At:</strong>
+                      </td>
+                      <td>
+                        {modalData.UPDATED_AT
+                          ? new Date(modalData.UPDATED_AT).toLocaleString()
+                          : "N/A"}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <strong>Updated By:</strong>
+                      </td>
+                      <td>{modalData.UPDATED_ID || "N/A"}</td>
+                    </tr>
+                  </tbody>
+                </Table>
+              </div>
+
+              <div>
+                <h6>Items in This Packing List</h6>
+                <Table striped bordered hover size="sm">
+                  <thead className="table-dark">
+                    <tr>
+                      <th>ID</th>
+                      <th>Supplier Item ID</th>
+                      <th>Size</th>
+                      <th>Code</th>
+                      <th>Pack</th>
+                      <th>Quantity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {modalData.PACKING_LIST_DETAILS &&
+                    modalData.PACKING_LIST_DETAILS.length > 0 ? (
+                      modalData.PACKING_LIST_DETAILS.map((item) => (
+                        <tr key={item.ID}>
+                          <td>{item.ID}</td>
+                          <td>{item.SUPPLIER_ITEM_ID}</td>
+                          <td>{item.SIZE || "N/A"}</td>
+                          <td>{item.CODE || "N/A"}</td>
+                          <td>{item.PACK || "N/A"}</td>
+                          <td>{item.QUANTITY}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="6" className="text-center">
+                          No items found
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </Table>
+              </div>
+            </>
+          ) : (
+            <p>Loading...</p>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setModalShow(false)}>
+            Close
+          </Button>
+          <Button
+            variant="danger"
+            onClick={() => {
+              handleDelete(modalData?.ID);
+              setModalShow(false);
+            }}
+          >
+            Delete Packing List
+          </Button>
+        </Modal.Footer>
+      </Modal>
       <Modal
         show={showNotConsumeModal}
         onHide={() => setShowNotConsumeModal(false)}
@@ -971,64 +1433,274 @@ const DeliverySummaryList = () => {
               </div>
             </Card.Body>
           </Card>
-          <Card className="my-4">
-            <Card.Header>
-              <h5>Select Purchase Orders</h5>
-            </Card.Header>
-            <Card.Body>
-              <div
-                className="ag-theme-alpine"
-                style={{height: "300px", width: "100%"}}
-              >
-                <AgGridReact
-                  ref={poGridRef}
-                  key={currentSchedule.ATD_DATE || ""}
-                  rowData={purchaseOrders}
-                  columnDefs={poColumnDefs}
-                  defaultColDef={defaultColDef}
-                  rowSelection="multiple"
-                  onSelectionChanged={(event) =>
-                    handlePOSelectionChanged(event.api)
-                  }
-                  suppressRowClickSelection={true}
-                />
-              </div>
-            </Card.Body>
-          </Card>
+          <Tabs
+            activeKey={activeTab}
+            id="sourcing-tabs"
+            className="my-3"
+            onSelect={(e) => changeTab(e)}
+          >
+            <Tab eventKey="split" title="Split Detail">
+              <Card className="my-4">
+                <Card.Header>
+                  <h5>Select Purchase Orders</h5>
+                </Card.Header>
+                <Card.Body>
+                  <div
+                    className="ag-theme-alpine"
+                    style={{height: "300px", width: "100%"}}
+                  >
+                    <AgGridReact
+                      ref={poGridRef}
+                      key={currentSchedule.ATD_DATE || ""}
+                      rowData={purchaseOrders}
+                      columnDefs={poColumnDefs}
+                      defaultColDef={defaultColDef}
+                      rowSelection="multiple"
+                      onSelectionChanged={(event) =>
+                        handlePOSelectionChanged(event.api)
+                      }
+                      suppressRowClickSelection={true}
+                    />
+                  </div>
+                </Card.Body>
+              </Card>
+              <Card>
+                <Card.Header>
+                  <div className="d-flex justify-content-between align-items-center">
+                    <h5>List Item Purchsaer Order</h5>
+                    <div className="d-flex gap-2">
+                      <Button
+                        variant="outline-primary"
+                        size="sm"
+                        onClick={exportToExcel}
+                      >
+                        Export Excel
+                      </Button>
+                      <Button
+                        className="mx-3"
+                        variant="success"
+                        size="sm"
+                        onClick={handleOpenItemConsume}
+                      >
+                        Save & Add Purchsae Order List
+                      </Button>
+                    </div>
+                  </div>
+                </Card.Header>
+                <Card.Body>
+                  {schedules.length > 0 ? (
+                    <div
+                      className="ag-theme-alpine"
+                      style={{height: "500px", width: "100%"}}
+                    >
+                      <AgGridReact
+                        rowData={deliveryScheduleList}
+                        columnDefs={deliverySummaryLineColumnDefs}
+                        pagination={true}
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <p>No List Item Purchsaer Order found.</p>
+                    </div>
+                  )}
+                </Card.Body>
+              </Card>
+            </Tab>
+            <Tab eventKey="delivery" title="Delivery List">
+              <Card className="my-4">
+                <Card.Header>
+                  <div className="d-flex justify-content-between align-items-center my-1">
+                    <h5>Box List</h5>
+                    <div className="d-flex gap-3 align-items-center">
+                      <Button size="sm" onClick={exportToExcelPackingList}>
+                        Export Template Excel
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="success"
+                        disabled={loading2}
+                        onClick={() =>
+                          document.getElementById("fileInput").click()
+                        }
+                      >
+                        {loading2 ? (
+                          <Spinner
+                            animation="border"
+                            variant="warning"
+                            size="sm"
+                          />
+                        ) : (
+                          "Import Excel"
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </Card.Header>
+                <Card.Body>
+                  <Container fluid>
+                    <Row>
+                      <Col md={8}>
+                        <div className="d-flex flex-wrap gap-3">
+                          {packingList && packingList.length > 0 ? (
+                            packingList.map((box, idx) => (
+                              <Card
+                                key={idx}
+                                className="shadow-sm"
+                                style={{width: "100%", cursor: "pointer"}}
+                              >
+                                <Card.Body>
+                                  <div className="d-flex justify-content-between align-items-start">
+                                    <div>
+                                      <Card.Title className="text-primary">
+                                        Box Seq {box.SEQUENCE}
+                                      </Card.Title>
+                                      <Card.Subtitle className="mb-2 text-muted">
+                                        Barcode / QR CODE:{" "}
+                                        {box.BARCODE_CODE || "-"}
+                                      </Card.Subtitle>
+                                    </div>
+                                    <div>
+                                      <button
+                                        className="btn btn-sm btn-outline-primary me-2"
+                                        onClick={() => openDetailModal(box)}
+                                      >
+                                        Watch
+                                      </button>
 
-          <Card>
-            <Card.Header>
-              <div className="d-flex justify-content-between align-items-center">
-                <h5>List Item Purchsaer Order</h5>
-                <Button
-                  className="mx-3"
-                  variant="success"
-                  size="sm"
-                  onClick={handleOpenItemConsume}
-                >
-                  Add Purchsae Order List
-                </Button>
-              </div>
-            </Card.Header>
-            <Card.Body>
-              {schedules.length > 0 ? (
-                <div
-                  className="ag-theme-alpine"
-                  style={{height: "500px", width: "100%"}}
-                >
-                  <AgGridReact
-                    rowData={deliveryScheduleList}
-                    columnDefs={deliverySummaryLineColumnDefs}
-                    pagination={true}
-                  />
-                </div>
-              ) : (
-                <div className="text-center py-4">
-                  <p>No List Item Purchsaer Order found.</p>
-                </div>
-              )}
-            </Card.Body>
-          </Card>
+                                      <button
+                                        className="btn btn-sm btn-outline-danger"
+                                        onClick={() => handleDelete(box.ID)}
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  <Card.Text>
+                                    <strong>Created Date:</strong>{" "}
+                                    {new Date(box.CREATED_AT).toLocaleString()}
+                                  </Card.Text>
+                                  <hr />
+                                  <div
+                                    className="ag-theme-alpine"
+                                    style={{height: "200px", width: "100%"}}
+                                  >
+                                    <AgGridReact
+                                      columnDefs={packingListColumnDefs}
+                                      rowData={box.PACKING_LIST_DETAILS}
+                                    />
+                                  </div>
+                                </Card.Body>
+                              </Card>
+                            ))
+                          ) : (
+                            <div className="w-100 text-center py-5">
+                              <div className="d-flex flex-column align-items-center justify-content-center">
+                                <div style={{fontSize: "3rem", color: "#ccc"}}>
+                                  📦
+                                </div>
+                                <h5 className="text-muted mt-3">
+                                  No Packing Lists Found
+                                </h5>
+                                <p className="text-muted">
+                                  There are currently no packing lists for this
+                                  delivery schedule.
+                                </p>
+                                <p className="text-muted">
+                                  Please import a packing list using the "Import
+                                  Excel" button.
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </Col>
+                      <Col md={4}>
+                        <h5>List item Required</h5>
+                        {summaryData.labels.length > 0 ? (
+                          <>
+                            <div
+                              style={{
+                                height: "250px",
+                                width: "250px",
+                                margin: "0 auto",
+                              }}
+                            >
+                              <Pie
+                                data={{
+                                  labels: summaryData.labels,
+                                  datasets: [
+                                    {
+                                      data: summaryData.data,
+                                      backgroundColor: colorListSummary,
+                                      borderWidth: 1,
+                                    },
+                                  ],
+                                }}
+                                options={{
+                                  responsive: true,
+                                  plugins: {
+                                    legend: {
+                                      position: "bottom",
+                                    },
+                                  },
+                                }}
+                              />
+                            </div>
+                            <div className="mt-4">
+                              <h6>Summary:</h6>
+                              <ul className="list-group">
+                                <li className="list-group-item d-flex justify-content-between align-items-center">
+                                  <b>Total Quantity</b>
+                                  <span className="badge bg-primary rounded-pill">
+                                    {summaryData.total}
+                                  </span>
+                                </li>
+                                {summaryData.balanceData.map((item, index) => (
+                                  <li
+                                    key={index}
+                                    className="list-group-item d-flex flex-column align-items-start"
+                                  >
+                                    <div className="d-flex justify-content-between w-100">
+                                      <span>{item.label}</span>
+                                      <div>
+                                        <span className="badge bg-secondary rounded-pill me-2">
+                                          Sch: {item.scheduledQty}
+                                        </span>
+                                        <span className="badge bg-info rounded-pill me-2">
+                                          Pck: {item.packedQty}
+                                        </span>
+                                        <span
+                                          className={`badge rounded-pill ${
+                                            item.balance < 0
+                                              ? "bg-danger"
+                                              : item.balance > 0
+                                              ? "bg-danger"
+                                              : "bg-success"
+                                          }`}
+                                        >
+                                          Bal: {item.balance}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-center py-4">
+                            <p>No delivery data available.</p>
+                          </div>
+                        )}
+                      </Col>
+                    </Row>
+                  </Container>
+                </Card.Body>
+              </Card>
+            </Tab>
+          </Tabs>
         </>
       )}
     </div>
