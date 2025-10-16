@@ -245,6 +245,11 @@ const DeliverySummaryList = () => {
 
   const packingListColumnDefs = [
     {
+      headerName: "Purchase Order ID",
+      field: "DELIVERY_SUMMARY_LIST.PURCHASE_ORDER_DETAIL.PURCHASE_ORDER_ID",
+      width: 130,
+    },
+    {
       headerName: "ITEM ID",
       field: "ITEM.ITEM_ID",
       width: 130,
@@ -1018,49 +1023,51 @@ const DeliverySummaryList = () => {
     }
   }, [purchaseOrders]);
 
-  const calculateSummary = () => {
-    if (!deliveryScheduleList || deliveryScheduleList.length === 0) {
-      return {labels: [], data: [], total: 0, balanceData: []};
+ const calculateSummary = () => {
+  if (!deliveryScheduleList || deliveryScheduleList.length === 0) {
+    return {labels: [], data: [], total: 0, balanceData: []};
+  }
+
+  const grouped = deliveryScheduleList.reduce((acc, item) => {
+    const itemId =
+      item.PURCHASE_ORDER_DETAIL?.MASTER_ITEM_SUPPLIER?.ITEM_ID || "Unknown";
+    const dimId =
+      item.PURCHASE_ORDER_DETAIL?.MATERIAL_ITEM_DIM_ID || "Unknown";
+    const key = `${itemId} (${dimId})`;
+
+    if (!acc[key]) {
+      acc[key] = {scheduledQty: 0, itemId, dimId};
     }
+    acc[key].scheduledQty += item.QUANTITY || 0;
+    return acc;
+  }, {});
 
-    const grouped = deliveryScheduleList.reduce((acc, item) => {
-      const itemId =
-        item.PURCHASE_ORDER_DETAIL?.MASTER_ITEM_SUPPLIER?.ITEM_ID || "Unknown";
-      const dimId =
-        item.PURCHASE_ORDER_DETAIL?.MATERIAL_ITEM_DIM_ID || "Unknown";
-      const key = `${itemId} (${dimId})`;
+  const labels = Object.keys(grouped);
+  const data = labels.map((label) => grouped[label].scheduledQty);
+  const total = data.reduce((sum, qty) => sum + qty, 0);
 
-      if (!acc[key]) {
-        acc[key] = {scheduledQty: 0, itemId, dimId};
+  const balanceData = labels.map((label) => {
+    const {itemId, dimId} = grouped[label];
+    const scheduledQty = grouped[label].scheduledQty;
+
+    let packedQty = 0;
+    packingListSummary.forEach((p) => {
+      const pItemId = p.ITEM?.ITEM_ID;
+      const pDimId =
+        p.DELIVERY_SUMMARY_LIST?.PURCHASE_ORDER_DETAIL?.MATERIAL_ITEM_DIM_ID;
+
+        
+      if (pItemId === itemId && pDimId === dimId) {
+        packedQty += p.TOTAL_QUANTITY || 0;
       }
-      acc[key].scheduledQty += item.QUANTITY || 0;
-      return acc;
-    }, {});
-
-    const labels = Object.keys(grouped);
-    const data = labels.map((label) => grouped[label].scheduledQty);
-    const total = data.reduce((sum, qty) => sum + qty, 0);
-
-    const balanceData = labels.map((label) => {
-      const {itemId, dimId} = grouped[label];
-      const scheduledQty = grouped[label].scheduledQty;
-
-      let packedQty = 0;
-      packingListSummary.forEach((p) => {
-        const pItemId = p.ITEM?.ITEM_ID;
-        const pDimId =
-          p.DELIVERY_SUMMARY_LIST?.PURCHASE_ORDER_DETAIL?.MATERIAL_ITEM_DIM_ID;
-        if (pItemId === itemId && pDimId === dimId) {
-          packedQty += p.TOTAL_QUANTITY || 0;
-        }
-      });
-
-      const balance = scheduledQty - packedQty;
-      return {label, itemId, dimId, scheduledQty, packedQty, balance};
     });
 
-    return {labels, data, total, balanceData};
-  };
+    const balance = scheduledQty - packedQty;
+    return {label, itemId, dimId, scheduledQty, packedQty, balance};
+  });
+
+  return {labels, data, total, balanceData};
+};
   const summaryData = calculateSummary();
 
   return (
@@ -1678,9 +1685,11 @@ const DeliverySummaryList = () => {
                                       <Card.Title className="text-primary">
                                         Box Seq {box.SEQUENCE}
                                       </Card.Title>
+                                      <Card.Subtitle className="mb-2">
+                                        Barcode / QR CODE:{" "} {box.BARCODE_CODE || "-"}
+                                      </Card.Subtitle>
                                       <Card.Subtitle className="mb-2 text-muted">
-                                        Barcode / QR CODE:{" "}
-                                        {box.BARCODE_CODE || "-"}
+                                        Total Pack:{" "} {box.PACKING_LIST_DETAILS.reduce((sum, item) => sum + item.QUANTITY, 0)}
                                       </Card.Subtitle>
                                     </div>
                                     <div>
