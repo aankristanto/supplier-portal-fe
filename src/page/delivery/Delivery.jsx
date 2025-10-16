@@ -24,6 +24,7 @@ import axios from "../../config/axios";
 import Swal from "sweetalert2";
 import {colorListSummary, defaultColDef} from "../../util/general";
 import "./delivery.css";
+import moment from "moment/moment";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -38,7 +39,7 @@ const DeliverySummaryList = () => {
 
   const [selectedPurchaseOrders, setSelectedPurchaseOrders] = useState([]);
   const [showNotConsumeModal, setShowNotConsumeModal] = useState(false);
-  const [activeTab, setActiveTab] = useState("split");
+  const [activeTab, setActiveTab] = useState("summary");
   const [notConsumedItems, setNotConsumedItems] = useState([]);
 
   const [modalShow, setModalShow] = useState(false);
@@ -177,6 +178,30 @@ const DeliverySummaryList = () => {
       editable: false,
     },
     {
+      headerName: "Dim ID",
+      field: "MATERIAL_ITEM_DIM_ID",
+      width: 100,
+      cellStyle: {fontWeight: "bold"},
+    },
+    {
+      headerName: "Color",
+      field: "MATERIAL_ITEM_COLOR",
+      width: 100,
+      cellStyle: {fontWeight: "bold"},
+    },
+    {
+      headerName: "Size",
+      field: "MATERIAL_ITEM_SIZE",
+      width: 100,
+      cellStyle: {fontWeight: "bold"},
+    },
+    {
+      headerName: "Serial NO",
+      field: "MATERIAL_ITEM_SERIAL_NO",
+      width: 130,
+      cellStyle: {fontWeight: "bold"},
+    },
+    {
       headerName: "Purchase OUM",
       field: "PURCHASE_UOM",
       width: 100,
@@ -230,13 +255,18 @@ const DeliverySummaryList = () => {
       width: 130,
     },
     {
+      headerName: "Dim ID",
+      field: "DELIVERY_SUMMARY_LIST.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_DIM_ID",
+      width: 250,
+    },
+    {
       headerName: "SIZE",
-      field: "SIZE",
+      field: "DELIVERY_SUMMARY_LIST.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_SIZE",
       width: 250,
     },
     {
       headerName: "COLOR",
-      field: "COLOR",
+      field: "DELIVERY_SUMMARY_LIST.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_COLOR",
       width: 150,
     },
     {
@@ -266,6 +296,14 @@ const DeliverySummaryList = () => {
       headerName: "Supplier Item ID",
       field: "PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID",
       width: 150,
+      editable: (params) =>
+        !params.data.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.IS_ITEM_ID,
+      cellStyle: (params) => ({
+        backgroundColor: !params.data.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER
+          .IS_ITEM_ID
+          ? "#fff3cd"
+          : "white",
+      }),
     },
     {
       headerName: "Supplier Item Code",
@@ -278,6 +316,11 @@ const DeliverySummaryList = () => {
       width: 150,
     },
     {
+      headerName: "Dim ID",
+      field: "PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_DIM_ID",
+      width: 100,
+    },
+    {
       headerName: "Color",
       field: "PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_COLOR",
       width: 100,
@@ -285,6 +328,11 @@ const DeliverySummaryList = () => {
     {
       headerName: "Size",
       field: "PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_SIZE",
+      width: 90,
+    },
+    {
+      headerName: "Serial NO",
+      field: "PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_SERIAL_NO",
       width: 90,
     },
     {
@@ -306,16 +354,23 @@ const DeliverySummaryList = () => {
     {headerName: "Delivery Mode", field: "DELIVERY_MODE", width: 150},
     {headerName: "Port Of Discharge", field: "PORT_OF_DISCHARGE", width: 150},
     {headerName: "Port Of Loading", field: "PORT_OF_LOADING", width: 150},
-    {headerName: "Custom Doc Type", field: "CUSTOM_DOC_TYPE", width: 150},
-    {headerName: "Custom Doc No", field: "CUSTOM_DOC_NO", width: 150},
-    {headerName: "Custom Doc Date", field: "CUSTOM_DOC_DATE", width: 150},
-    {headerName: "Custom DOc Note", field: "CUSTOM_DOC_NOTE", width: 150},
     {headerName: "Packing Slip No", field: "PACKING_SLIP_NO", width: 150},
     {headerName: "Invoice No", field: "INVOICE_NO", width: 150},
-    {headerName: "Truck Number", field: "TRUCK_NUMBER", width: 150},
-    {headerName: "Container No", field: "CONTAINER_NOTE", width: 150},
     {headerName: "Delivery Note", field: "DELIVERY_NOTE", width: 150},
-
+    {headerName: "Created By", field: "CREATED.INITIAL", width: 150},
+    {
+      headerName: "Created Date",
+      field: "CREATED_AT",
+      width: 150,
+      cellRenderer: (params) => moment(params.value).format("DD-MM-YYYY HH:mm"),
+    },
+    {headerName: "Updated By", field: "UPDATED.INITIAL", width: 150},
+    {
+      headerName: "Updated Date",
+      field: "UPDATED_AT",
+      width: 150,
+      cellRenderer: (params) => moment(params.value).format("DD-MM-YYYY HH:mm"),
+    },
     {
       headerName: "Actions",
       width: 120,
@@ -341,7 +396,20 @@ const DeliverySummaryList = () => {
           DELIVERY_SUMMARY_ID: deliverySummaryId,
         },
       });
-      setDeliveryScheduleList(data.data || []);
+
+      setDeliveryScheduleList(
+        data.data.map((item) => ({
+          ...item,
+          PURCHASE_ORDER_DETAIL: {
+            ...item.PURCHASE_ORDER_DETAIL,
+            MASTER_ITEM_SUPPLIER: {
+              ...item.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER,
+              IS_ITEM_ID:
+                !!item.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID,
+            },
+          },
+        }))
+      );
     } catch (err) {
       toast.error(
         err.response?.data?.message ?? "Failed to fetch delivery schedules"
@@ -357,6 +425,13 @@ const DeliverySummaryList = () => {
           DELIVERY_SUMMARY_ID: deliverySummaryId,
         },
       });
+      if (data.data.length) {
+        setCurrentSchedule({
+          ...currentSchedule,
+          PACK_ALREADY: true,
+        });
+      }
+
       setPackingList(data.data || []);
     } catch (err) {
       toast.error(
@@ -500,6 +575,7 @@ const DeliverySummaryList = () => {
     const file = e.target.files[0];
     if (file) {
       importExcelPackingList(file);
+      e.target.value = null;
     }
   };
 
@@ -574,7 +650,7 @@ const DeliverySummaryList = () => {
     try {
       await axios.delete(`/packing/list/${id}`);
       toast.success("Packing list deleted successfully");
-      fetchPackingList(currentSchedule.ID); // Refresh data
+      fetchPackingList(currentSchedule.ID);
     } catch (err) {
       toast.error(
         err.response?.data?.message ?? "Failed to delete packing list"
@@ -762,6 +838,26 @@ const DeliverySummaryList = () => {
     setNotConsumedItems(updatedItems);
   };
 
+  const handleCellValueChanged2 = async (params) => {
+    const {data} = params;
+    try {
+      await axios.put(
+        `/master-item-supplier/${data.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ID}`,
+        {
+          ITEM_ID: data.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID,
+          CODE: data.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.CODE,
+          DESCRIPTION:
+            data.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.DESCRIPTION,
+        }
+      );
+
+      toast.success("Supplier updated successfully!");
+    } catch (err) {
+      toast.error(err.response?.data?.message ?? "Failed to update supplier");
+    }
+    fetchDeliverySummariesList(currentSchedule.ID);
+  };
+
   const exportToExcel = () => {
     if (!deliveryScheduleList || deliveryScheduleList.length === 0) {
       toast.warn("No data to export");
@@ -800,7 +896,7 @@ const DeliverySummaryList = () => {
           exportData.push({
             "Box Seq/No": box.SEQUENCE,
             "Barcode / QR Code Box": box.BARCODE_CODE || "",
-            MPO: detail.PURCHASE_ORDER_ID || "", // Ambil dari detail
+            MPO: detail.PURCHASE_ORDER_ID || "",
             "Supplier Item ID": detail.SUPPLIER_ITEM_ID || "",
             Size: detail.SIZE || "",
             Color: detail.COLOR || "",
@@ -853,7 +949,11 @@ const DeliverySummaryList = () => {
   };
 
   const changeTab = (e) => {
-    if (e === "delivery") {
+    if (e === "packing-list") {
+      if (!currentSchedule?.ID) {
+        toast.error("Create Dlivery Schedule First");
+        return;
+      }
       fetchDeliveryBalance(currentSchedule?.ID);
       fetchPackingList(currentSchedule?.ID);
     }
@@ -879,6 +979,7 @@ const DeliverySummaryList = () => {
       TRUCK_NUMBER: "",
       CONTAINER_NOTE: "",
     });
+    setActiveTab("summary");
     setSchedules([]);
     setPurchaseOrders([]);
     setSelectedPurchaseOrders([]);
@@ -915,7 +1016,6 @@ const DeliverySummaryList = () => {
     if (currentSchedule?.ID) {
       fetchPurchaseOrdersListSell(currentSchedule?.ID);
     }
-    // eslint-disable-next-line
   }, [purchaseOrders]);
 
   const calculateSummary = () => {
@@ -924,25 +1024,39 @@ const DeliverySummaryList = () => {
     }
 
     const grouped = deliveryScheduleList.reduce((acc, item) => {
-      const code =
+      const itemId =
         item.PURCHASE_ORDER_DETAIL?.MASTER_ITEM_SUPPLIER?.ITEM_ID || "Unknown";
-      if (!acc[code]) {
-        acc[code] = 0;
+      const dimId =
+        item.PURCHASE_ORDER_DETAIL?.MATERIAL_ITEM_DIM_ID || "Unknown";
+      const key = `${itemId} (${dimId})`;
+
+      if (!acc[key]) {
+        acc[key] = {scheduledQty: 0, itemId, dimId};
       }
-      acc[code] += item.QUANTITY || 0;
+      acc[key].scheduledQty += item.QUANTITY || 0;
       return acc;
     }, {});
 
     const labels = Object.keys(grouped);
-    const data = Object.values(grouped);
+    const data = labels.map((label) => grouped[label].scheduledQty);
     const total = data.reduce((sum, qty) => sum + qty, 0);
 
-
     const balanceData = labels.map((label) => {
-      const scheduledQty = grouped[label];
-      const packedQty = packingListSummary.find((p) => p.ITEM.ITEM_ID === label)?.TOTAL_QUANTITY || 0;
+      const {itemId, dimId} = grouped[label];
+      const scheduledQty = grouped[label].scheduledQty;
+
+      let packedQty = 0;
+      packingListSummary.forEach((p) => {
+        const pItemId = p.ITEM?.ITEM_ID;
+        const pDimId =
+          p.DELIVERY_SUMMARY_LIST?.PURCHASE_ORDER_DETAIL?.MATERIAL_ITEM_DIM_ID;
+        if (pItemId === itemId && pDimId === dimId) {
+          packedQty += p.TOTAL_QUANTITY || 0;
+        }
+      });
+
       const balance = scheduledQty - packedQty;
-      return {label, scheduledQty, packedQty, balance};
+      return {label, itemId, dimId, scheduledQty, packedQty, balance};
     });
 
     return {labels, data, total, balanceData};
@@ -1439,32 +1553,33 @@ const DeliverySummaryList = () => {
             className="my-3"
             onSelect={(e) => changeTab(e)}
           >
-            <Tab eventKey="split" title="Split Detail">
-              
-              {!currentSchedule.PACK_ALREADY && <Card className="my-4">
-                <Card.Header>
-                  <h5>Select Purchase Orders</h5>
-                </Card.Header>
-                <Card.Body>
-                  <div
-                    className="ag-theme-alpine"
-                    style={{height: "300px", width: "100%"}}
-                  >
-                    <AgGridReact
-                      ref={poGridRef}
-                      key={currentSchedule.ATD_DATE || ""}
-                      rowData={purchaseOrders}
-                      columnDefs={poColumnDefs}
-                      defaultColDef={defaultColDef}
-                      rowSelection="multiple"
-                      onSelectionChanged={(event) =>
-                        handlePOSelectionChanged(event.api)
-                      }
-                      suppressRowClickSelection={true}
-                    />
-                  </div>
-                </Card.Body>
-              </Card> }
+            <Tab eventKey="summary" title="Summary">
+              {!currentSchedule.PACK_ALREADY && (
+                <Card className="my-4">
+                  <Card.Header>
+                    <h5>Select Purchase Orders</h5>
+                  </Card.Header>
+                  <Card.Body>
+                    <div
+                      className="ag-theme-alpine"
+                      style={{height: "300px", width: "100%"}}
+                    >
+                      <AgGridReact
+                        ref={poGridRef}
+                        key={currentSchedule.ATD_DATE || ""}
+                        rowData={purchaseOrders}
+                        columnDefs={poColumnDefs}
+                        defaultColDef={defaultColDef}
+                        rowSelection="multiple"
+                        onSelectionChanged={(event) =>
+                          handlePOSelectionChanged(event.api)
+                        }
+                        suppressRowClickSelection={true}
+                      />
+                    </div>
+                  </Card.Body>
+                </Card>
+              )}
               <Card>
                 <Card.Header>
                   <div className="d-flex justify-content-between align-items-center">
@@ -1477,18 +1592,16 @@ const DeliverySummaryList = () => {
                       >
                         Export Excel
                       </Button>
-                      {
-                        !currentSchedule.PACK_ALREADY &&
-                      
-                      <Button
-                        className="mx-3"
-                        variant="success"
-                        size="sm"
-                        onClick={handleOpenItemConsume}
-                      >
-                        Save & Add Purchsae Order List
-                      </Button>
-                      }
+                      {!currentSchedule.PACK_ALREADY && (
+                        <Button
+                          className="mx-3"
+                          variant="success"
+                          size="sm"
+                          onClick={handleOpenItemConsume}
+                        >
+                          Save & Add Purchsae Order List
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </Card.Header>
@@ -1502,6 +1615,11 @@ const DeliverySummaryList = () => {
                         rowData={deliveryScheduleList}
                         columnDefs={deliverySummaryLineColumnDefs}
                         pagination={true}
+                        enableCellTextSelection={true}
+                        onCellValueChanged={handleCellValueChanged2}
+                        stopEditingWhenCellsLoseFocus={true}
+                        singleClickEdit={true}
+                        suppressClickEdit={false}
                       />
                     </div>
                   ) : (
@@ -1512,7 +1630,7 @@ const DeliverySummaryList = () => {
                 </Card.Body>
               </Card>
             </Tab>
-            <Tab eventKey="delivery" title="Delivery List">
+            <Tab eventKey="packing-list" title="Packing List">
               <Card className="my-4">
                 <Card.Header>
                   <div className="d-flex justify-content-between align-items-center my-1">

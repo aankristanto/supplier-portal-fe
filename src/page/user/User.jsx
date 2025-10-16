@@ -9,6 +9,8 @@ import Swal from "sweetalert2";
 const UserPage = () => {
   const gridRef = useRef();
 
+  
+  const [company, setCompany] = useState([]);
   const [rowData, setRowData] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -68,7 +70,7 @@ const UserPage = () => {
       width: 120,
     },
     {
-      headerName: "Gender",
+      headerName: "Title",
       field: "GENDER",
       filter: true,
       sortable: true,
@@ -100,10 +102,19 @@ const UserPage = () => {
 
   const fetchData = async () => {
     try {
-      const response = await axios.get("/user");
-      setRowData(response.data.data);
+      const {data} = await axios.get("/user");
+      setRowData(data.data);
     } catch (error) {
       toast.error("Gagal memuat data user");
+    }
+  };
+
+   const fetchDataCompany = async () => {
+    try {
+      const {data} = await axios.get('/company'); 
+      setCompany(data.data);
+    } catch (error) {
+      toast.error('Gagal memuat data perusahaan');
     }
   };
 
@@ -212,6 +223,7 @@ const UserPage = () => {
 
   useEffect(() => {
     fetchData();
+    fetchDataCompany()
   }, []);
 
   return (
@@ -303,25 +315,28 @@ const UserPage = () => {
               </Col>
               <Col md={6}>
                 <Form.Group className="mb-3" controlId="formCompanyId">
-                  <Form.Label>Company ID *</Form.Label>
-                  <Form.Control
-                    type="text"
+                  <Form.Label>Company *</Form.Label>
+                  <Form.Select
                     name="COMPANY_ID"
                     value={formData.COMPANY_ID}
                     onChange={handleChange}
-                    required
-                  />
+                  >
+                    <option value="">Select Company</option>
+                    {company.map((item, idx) => (
+                      <option value={item.ID} key={idx}>{item.NAME}</option>
+                    ))}
+                  </Form.Select>
                 </Form.Group>
               </Col>
               <Col md={6}>
                 <Form.Group className="mb-3" controlId="formGender">
-                  <Form.Label>Gender</Form.Label>
+                  <Form.Label>Title</Form.Label>
                   <Form.Select
                     name="GENDER"
                     value={formData.GENDER}
                     onChange={handleChange}
                   >
-                    <option value="">Select Gender</option>
+                    <option value="">Select Title</option>
                     <option value="Tuan">Tuan</option>
                     <option value="Nyonya">Nyonya</option>
                     <option value="Nona">Nona</option>

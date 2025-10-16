@@ -135,7 +135,6 @@ const MasterItemSupplierPage = () => {
                 stopEditingWhenCellsLoseFocus={true}
                 singleClickEdit={true}
                 suppressClickEdit={false}
-                
                 getRowStyle={(params) => {
                   if (!params.data.ITEM_ID || !params.data.CODE) {
                     return { backgroundColor: '#fff0f0' };

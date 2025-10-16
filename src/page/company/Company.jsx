@@ -27,19 +27,19 @@ const CompanyPage = () => {
   
   const columnDefs = [
     {
+      headerName: 'ID',
+      field: 'ID',
+      filter: true,
+      sortable: true,
+      width: 120,
+    },
+    {
       headerName: 'Nama',
       field: 'NAME',
       filter: true,
       sortable: true,
       flex: 1,
-      width: 150,
-    },
-    {
-      headerName: 'ID',
-      field: 'ID',
-      filter: true,
-      sortable: true,
-      width: 100,
+      width: 160,
     },
     {
       headerName: 'Alamat',
@@ -101,9 +101,7 @@ const CompanyPage = () => {
   const fetchData = async () => {
     try {
       const response = await axios.get('/company'); 
-      if (response.data.status) {
-        setRowData(response.data.data);
-      }
+      setRowData(response.data.data);
     } catch (error) {
       toast.error('Gagal memuat data perusahaan');
     }
