@@ -61,14 +61,10 @@ const DeliverySummaryList = () => {
     PORT_OF_DISCHARGE: "",
     PORT_OF_LOADING: "",
     TERM_OF_DELIVERY: "",
-    CUSTOM_DOC_TYPE: "",
-    CUSTOM_DOC_NO: "",
-    CUSTOM_DOC_DATE: "",
-    CUSTOM_DOC_NOTE: "",
     PACKING_SLIP_NO: "",
     INVOICE_NO: "",
     DELIVERY_NOTE: "",
-    TRUCK_NUMBER: "",
+    FORWARDER_NOTE: "",
     CONTAINER_NOTE: "",
   });
 
@@ -304,21 +300,28 @@ const DeliverySummaryList = () => {
       editable: (params) =>
         !params.data.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.IS_ITEM_ID,
       cellStyle: (params) => ({
-        backgroundColor: !params.data.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER
-          .IS_ITEM_ID
-          ? "#fff3cd"
-          : "white",
+        backgroundColor: !params.data.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.IS_ITEM_ID ? "#fff3cd" : "white",
       }),
     },
     {
       headerName: "Supplier Item Code",
       field: "PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.CODE",
       width: 150,
+      editable: (params) =>
+        !params.data.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.IS_CODE,
+      cellStyle: (params) => ({
+        backgroundColor: !params.data.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.IS_CODE ? "#fff3cd" : "white",
+      }),
     },
     {
       headerName: "Supplier Item Description",
       field: "PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.DESCRIPTION",
       width: 150,
+      editable: (params) =>
+        !params.data.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.IS_DESCRIPTION,
+      cellStyle: (params) => ({
+        backgroundColor: !params.data.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.IS_DESCRIPTION ? "#fff3cd" : "white",
+      }),
     },
     {
       headerName: "Dim ID",
@@ -421,8 +424,9 @@ const DeliverySummaryList = () => {
             ...item.PURCHASE_ORDER_DETAIL,
             MASTER_ITEM_SUPPLIER: {
               ...item.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER,
-              IS_ITEM_ID:
-                !!item.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID,
+              IS_ITEM_ID: !!item.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID,
+              IS_CODE: !!item.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.CODE,
+              IS_DESCRIPTION: !!item.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.DESCRIPTION,
             },
           },
         }))
@@ -998,14 +1002,10 @@ const DeliverySummaryList = () => {
       PORT_OF_DISCHARGE: "",
       PORT_OF_LOADING: "",
       TERM_OF_DELIVERY: "",
-      CUSTOM_DOC_TYPE: "",
-      CUSTOM_DOC_NO: "",
-      CUSTOM_DOC_DATE: "",
-      CUSTOM_DOC_NOTE: "",
       PACKING_SLIP_NO: "",
       INVOICE_NO: "",
       DELIVERY_NOTE: "",
-      TRUCK_NUMBER: "",
+      FORWARDER_NOTE: "",
       CONTAINER_NOTE: "",
     });
     setActiveTab("summary");
@@ -1475,14 +1475,14 @@ const DeliverySummaryList = () => {
                 </Col>
                 <Col md={3}>
                   <Form.Group>
-                    <Form.Label>Truck Number</Form.Label>
+                    <Form.Label>Forwarder Note</Form.Label>
                     <Form.Control
                       type="text"
-                      value={currentSchedule.TRUCK_NUMBER}
+                      value={currentSchedule.FORWARDER_NOTE}
                       onChange={(e) =>
                         setCurrentSchedule({
                           ...currentSchedule,
-                          TRUCK_NUMBER: e.target.value,
+                          FORWARDER_NOTE: e.target.value,
                         })
                       }
                     />
@@ -1521,62 +1521,6 @@ const DeliverySummaryList = () => {
                   </Form.Group>
                 </Col>
               </Row>
-
-              <div className="mt-4 pt-3 border-top">
-                <h6>Custom Document (Optional)</h6>
-                <Row className="g-3">
-                  <Col md={4}>
-                    <Form.Control
-                      placeholder="Document Type"
-                      value={currentSchedule.CUSTOM_DOC_TYPE}
-                      onChange={(e) =>
-                        setCurrentSchedule({
-                          ...currentSchedule,
-                          CUSTOM_DOC_TYPE: e.target.value,
-                        })
-                      }
-                    />
-                  </Col>
-                  <Col md={4}>
-                    <Form.Control
-                      placeholder="Document No"
-                      value={currentSchedule.CUSTOM_DOC_NO}
-                      onChange={(e) =>
-                        setCurrentSchedule({
-                          ...currentSchedule,
-                          CUSTOM_DOC_NO: e.target.value,
-                        })
-                      }
-                    />
-                  </Col>
-                  <Col md={4}>
-                    <Form.Control
-                      type="date"
-                      value={currentSchedule.CUSTOM_DOC_DATE}
-                      onChange={(e) =>
-                        setCurrentSchedule({
-                          ...currentSchedule,
-                          CUSTOM_DOC_DATE: e.target.value,
-                        })
-                      }
-                    />
-                  </Col>
-                </Row>
-                <Form.Group className="mt-2">
-                  <Form.Control
-                    as="textarea"
-                    placeholder="Document Note"
-                    rows={1}
-                    value={currentSchedule.CUSTOM_DOC_NOTE}
-                    onChange={(e) =>
-                      setCurrentSchedule({
-                        ...currentSchedule,
-                        CUSTOM_DOC_NOTE: e.target.value,
-                      })
-                    }
-                  />
-                </Form.Group>
-              </div>
             </Card.Body>
           </Card>
           <Tabs

@@ -36,14 +36,10 @@ const SummaryPage = () => {
     PORT_OF_DISCHARGE: "",
     PORT_OF_LOADING: "",
     TERM_OF_DELIVERY: "",
-    CUSTOM_DOC_TYPE: "",
-    CUSTOM_DOC_NO: "",
-    CUSTOM_DOC_DATE: "",
-    CUSTOM_DOC_NOTE: "",
     PACKING_SLIP_NO: "",
     INVOICE_NO: "",
     DELIVERY_NOTE: "",
-    TRUCK_NUMBER: "",
+    FORWARDER_NOTE: "",
     CONTAINER_NOTE: "",
     NOTE: "",
   });
@@ -300,14 +296,10 @@ const SummaryPage = () => {
       PORT_OF_DISCHARGE: schedule.PORT_OF_DISCHARGE || "",
       PORT_OF_LOADING: schedule.PORT_OF_LOADING || "",
       TERM_OF_DELIVERY: schedule.TERM_OF_DELIVERY || "",
-      CUSTOM_DOC_TYPE: schedule.CUSTOM_DOC_TYPE || "",
-      CUSTOM_DOC_NO: schedule.CUSTOM_DOC_NO || "",
-      CUSTOM_DOC_DATE: schedule.CUSTOM_DOC_DATE || "",
-      CUSTOM_DOC_NOTE: schedule.CUSTOM_DOC_NOTE || "",
       PACKING_SLIP_NO: schedule.PACKING_SLIP_NO || "",
       INVOICE_NO: schedule.INVOICE_NO || "",
       DELIVERY_NOTE: schedule.DELIVERY_NOTE || "",
-      TRUCK_NUMBER: schedule.TRUCK_NUMBER || "",
+      FORWARDER_NOTE: schedule.FORWARDER_NOTE || "",
       CONTAINER_NOTE: schedule.CONTAINER_NOTE || "",
       NOTE: schedule.NOTE || "",
     });
@@ -323,14 +315,10 @@ const SummaryPage = () => {
       PORT_OF_DISCHARGE: "",
       PORT_OF_LOADING: "",
       TERM_OF_DELIVERY: "",
-      CUSTOM_DOC_TYPE: "",
-      CUSTOM_DOC_NO: "",
-      CUSTOM_DOC_DATE: "",
-      CUSTOM_DOC_NOTE: "",
       PACKING_SLIP_NO: "",
       INVOICE_NO: "",
       DELIVERY_NOTE: "",
-      TRUCK_NUMBER: "",
+      FORWARDER_NOTE: "",
       CONTAINER_NOTE: "",
       NOTE: "",
     });
@@ -511,14 +499,14 @@ const SummaryPage = () => {
             </Col>
             <Col md={6}>
               <Form.Group>
-                <Form.Label>Truck Number</Form.Label>
+                <Form.Label>Container No</Form.Label>
                 <Form.Control
                   type="text"
-                  value={currentSchedule.TRUCK_NUMBER}
+                  value={currentSchedule.FORWARDER_NOTE}
                   onChange={(e) =>
                     setCurrentSchedule({
                       ...currentSchedule,
-                      TRUCK_NUMBER: e.target.value,
+                      FORWARDER_NOTE: e.target.value,
                     })
                   }
                 />
@@ -557,62 +545,6 @@ const SummaryPage = () => {
               </Form.Group>
             </Col>
           </Row>
-
-          <div className="mt-4 pt-3 border-top">
-            <h6>Custom Document (Optional)</h6>
-            <Row className="g-3">
-              <Col md={4}>
-                <Form.Control
-                  placeholder="Document Type"
-                  value={currentSchedule.CUSTOM_DOC_TYPE}
-                  onChange={(e) =>
-                    setCurrentSchedule({
-                      ...currentSchedule,
-                      CUSTOM_DOC_TYPE: e.target.value,
-                    })
-                  }
-                />
-              </Col>
-              <Col md={4}>
-                <Form.Control
-                  placeholder="Document No"
-                  value={currentSchedule.CUSTOM_DOC_NO}
-                  onChange={(e) =>
-                    setCurrentSchedule({
-                      ...currentSchedule,
-                      CUSTOM_DOC_NO: e.target.value,
-                    })
-                  }
-                />
-              </Col>
-              <Col md={4}>
-                <Form.Control
-                  type="date"
-                  value={currentSchedule.CUSTOM_DOC_DATE}
-                  onChange={(e) =>
-                    setCurrentSchedule({
-                      ...currentSchedule,
-                      CUSTOM_DOC_DATE: e.target.value,
-                    })
-                  }
-                />
-              </Col>
-            </Row>
-            <Form.Group className="mt-2">
-              <Form.Control
-                as="textarea"
-                placeholder="Document Note"
-                rows={1}
-                value={currentSchedule.CUSTOM_DOC_NOTE}
-                onChange={(e) =>
-                  setCurrentSchedule({
-                    ...currentSchedule,
-                    CUSTOM_DOC_NOTE: e.target.value,
-                  })
-                }
-              />
-            </Form.Group>
-          </div>
         </Modal.Body>
         <Modal.Footer>
           <Button
@@ -688,8 +620,8 @@ const SummaryPage = () => {
                   {selectedSchedule.INVOICE_NO || "-"}
                 </div>
                 <div className="mb-3">
-                  <strong>Truck Number:</strong>{" "}
-                  {selectedSchedule.TRUCK_NUMBER || "-"}
+                  <strong>Container No:</strong>{" "}
+                  {selectedSchedule.FORWARDER_NOTE || "-"}
                 </div>
                 <div className="mb-3">
                   <strong>Container No:</strong>{" "}
@@ -700,33 +632,6 @@ const SummaryPage = () => {
                   {selectedSchedule.DELIVERY_NOTE || "-"}
                 </div>
               </div>
-
-              {(selectedSchedule.CUSTOM_DOC_TYPE ||
-                selectedSchedule.CUSTOM_DOC_NO ||
-                selectedSchedule.CUSTOM_DOC_DATE ||
-                selectedSchedule.CUSTOM_DOC_NOTE) && (
-                <div className="col-12 mt-3">
-                  <h6 className="border-bottom pb-2 mb-3">Custom Document</h6>
-                  <div className="row">
-                    <div className="col-md-3">
-                      <strong>Type:</strong>{" "}
-                      {selectedSchedule.CUSTOM_DOC_TYPE || "-"}
-                    </div>
-                    <div className="col-md-3">
-                      <strong>No:</strong>{" "}
-                      {selectedSchedule.CUSTOM_DOC_NO || "-"}
-                    </div>
-                    <div className="col-md-3">
-                      <strong>Date:</strong>{" "}
-                      {selectedSchedule.CUSTOM_DOC_DATE || "-"}
-                    </div>
-                    <div className="col-md-3">
-                      <strong>Note:</strong>{" "}
-                      {selectedSchedule.CUSTOM_DOC_NOTE || "-"}
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </Modal.Body>
@@ -831,8 +736,8 @@ const SummaryPage = () => {
                   {selectedSchedule?.INVOICE_NO || "-"}
                 </div>
                 <div className="mb-3">
-                  <strong>Truck Number:</strong>
-                  {selectedSchedule?.TRUCK_NUMBER || "-"}
+                  <strong>Forwarder Note:</strong>
+                  {selectedSchedule?.FORWARDER_NOTE || "-"}
                 </div>
                 <div className="mb-3">
                   <strong>Container No:</strong>
@@ -843,33 +748,6 @@ const SummaryPage = () => {
                   {selectedSchedule?.DELIVERY_NOTE || "-"}
                 </div>
               </div>
-
-              {(selectedSchedule?.CUSTOM_DOC_TYPE ||
-                selectedSchedule?.CUSTOM_DOC_NO ||
-                selectedSchedule?.CUSTOM_DOC_DATE ||
-                selectedSchedule?.CUSTOM_DOC_NOTE) && (
-                <div className="col-12 mt-3">
-                  <h6 className="border-bottom pb-2 mb-3">Custom Document</h6>
-                  <div className="row">
-                    <div className="col-md-3">
-                      <strong>Type:</strong>
-                      {selectedSchedule?.CUSTOM_DOC_TYPE || "-"}
-                    </div>
-                    <div className="col-md-3">
-                      <strong>No:</strong>
-                      {selectedSchedule?.CUSTOM_DOC_NO || "-"}
-                    </div>
-                    <div className="col-md-3">
-                      <strong>Date:</strong>
-                      {selectedSchedule?.CUSTOM_DOC_DATE || "-"}
-                    </div>
-                    <div className="col-md-3">
-                      <strong>Note:</strong>
-                      {selectedSchedule?.CUSTOM_DOC_NOTE || "-"}
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </Modal.Body>

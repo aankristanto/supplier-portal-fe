@@ -217,15 +217,6 @@ const PurchaseOrderList = () => {
                   Set to Process
                 </Button>
               )}
-              {formData?.MPO_STATUS === "Process" && (
-                <Button
-                  variant="info"
-                  size="sm"
-                  onClick={() => handleUpdateStatus("Done")}
-                >
-                  Set to Done
-                </Button>
-              )}
             </div>
           </div>
 

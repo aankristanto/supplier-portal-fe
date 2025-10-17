@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://localhost:5004/api',
+    baseURL: 'http://localhost:58111/api',
 });
 
 var navigateTo;
@@ -39,6 +39,17 @@ api.interceptors.response.use(
     },
     (error) => {
         const originalRequest = error.config;
+
+        if (!error.response) {
+            localStorage.removeItem('token');
+            if (navigateTo) {
+                navigateTo('/login');
+            } else {
+                window.location.href = '/login';
+            }
+            return Promise.reject(error);
+        }
+
 
         if (error.response) {
             const newToken = error.response.headers["x-new-access-token"];
