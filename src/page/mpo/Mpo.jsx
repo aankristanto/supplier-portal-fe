@@ -4,6 +4,7 @@ import {AgGridReact} from "ag-grid-react";
 import {Button, Card, Col, Form, Row} from "react-bootstrap";
 import {toast} from "react-toastify";
 import axios from "../../config/axios";
+import moment from "moment";
 
 const PurchaseOrderList = () => {
   const [purchaseOrders, setPurchaseOrders] = useState([]);
@@ -39,8 +40,8 @@ const PurchaseOrderList = () => {
     {headerName: "Currency", field: "CURRENCY_CODE", width: 100},
     {headerName: "Tax %", field: "TAX_PERCENTAGE", width: 100},
     {headerName: "Surcharge", field: "SURCHARGE_AMOUNT", width: 120},
-    {headerName: "Created At", field: "CREATED_AT", width: 180},
-    {headerName: "Updated At", field: "UPDATED_AT", width: 180},
+    {headerName: "Created At", field: "CREATED_AT", width: 180, cellRenderer: (params) => moment(params.value).format('DD-MM-YYYY HH:mm')},
+    {headerName: "Updated At", field: "UPDATED_AT", width: 180, cellRenderer: (params) => moment(params.value).format('DD-MM-YYYY HH:mm')},
   ];
 
   const itemColumnDefs = [

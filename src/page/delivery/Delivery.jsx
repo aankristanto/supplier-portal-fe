@@ -161,7 +161,7 @@ const DeliverySummaryList = () => {
     },
     {
       headerName: "Supplier Item Id",
-      field: "SUPPLIER_ITEM_ID",
+      field: "ITEM_ID",
       width: 150,
       editable: false,
     },
@@ -346,10 +346,22 @@ const DeliverySummaryList = () => {
       width: 80,
     },
     {
-      headerName: "Quantity",
+      headerName: "Required Quantity",
+      field: "PURCHASE_ORDER_QTY",
+      width: 120,
+      cellStyle: {backgroundColor: "#90EE90", fontWeight: "bold"},
+    },
+    {
+      headerName: "Send Quantity",
       field: "QUANTITY",
       width: 120,
       cellStyle: {color: "green", fontWeight: "bold"},
+    },
+    {
+      headerName: "Balance Quantity",
+      field: "BALANCE_QUANTITY",
+      width: 120,
+      cellStyle: (params) => ({color: !!Number(params.data.BALANCE_QUANTITY)  && "red", fontWeight: "bold"}),
     },
   ];
 
@@ -523,9 +535,9 @@ const DeliverySummaryList = () => {
 
       const requiredColumns = [
         "Box Seq/No",
-        "MPO",
+        "MPO ID",
         "Supplier Item ID",
-        "Size",
+        "Dim ID",
         "Pack",
         "PCS",
       ];
@@ -533,6 +545,7 @@ const DeliverySummaryList = () => {
         (col) => !jsonData[0]?.hasOwnProperty(col)
       );
       if (missingColumns.length > 0) {
+        setLoading2(false);
         toast.error(`Missing required columns: ${missingColumns.join(", ")}`);
         return;
       }
@@ -540,10 +553,12 @@ const DeliverySummaryList = () => {
       const transformedData = jsonData
         .map((row) => ({
           BOX_SEQ: row["Box Seq/No"],
-          MPO_ID: row["MPO"],
+          MPO_ID: row["MPO ID"],
           ITEM_ID: row["Supplier Item ID"],
+          DIM_ID: row["Dim ID"],
           SIZE: row["Size"],
           COLOR: row["Color"],
+          UOM: row["UOM"],
           PACK: row["Pack"],
           QTY: parseFloat(row["PCS"]) || 0,
           BARCODE_CODE: row["Barcode / QR Code Box"],
@@ -551,6 +566,7 @@ const DeliverySummaryList = () => {
         .filter((item) => item.BOX_SEQ && item.MPO_ID && item.ITEM_ID);
 
       if (transformedData.length === 0) {
+        setLoading2(false);
         toast.warn("No valid data found in the file");
         return;
       }
@@ -560,14 +576,13 @@ const DeliverySummaryList = () => {
           DELIVERY_SUMMARY_ID: currentSchedule.ID,
           LIST_DETAIL: transformedData,
         });
+        toast.success("Packing list imported successfully!");
         setLoading2(false);
+        fetchPackingList(currentSchedule.ID);
       } catch (err) {
         setLoading2(false);
         toast.error(err.response?.data?.message ?? "Failed to import excel");
       }
-
-      toast.success("Packing list imported successfully!");
-      fetchPackingList(currentSchedule.ID);
     };
     reader.readAsArrayBuffer(file);
   };
@@ -879,6 +894,7 @@ const DeliverySummaryList = () => {
         item.PURCHASE_ORDER_DETAIL?.MASTER_ITEM_SUPPLIER?.CODE || "",
       "Supplier Item Description":
         item.PURCHASE_ORDER_DETAIL?.MASTER_ITEM_SUPPLIER?.DESCRIPTION || "",
+      "Dim ID": item.PURCHASE_ORDER_DETAIL?.MATERIAL_ITEM_DIM_ID || "",
       Color: item.PURCHASE_ORDER_DETAIL?.MATERIAL_ITEM_COLOR || "",
       Size: item.PURCHASE_ORDER_DETAIL?.MATERIAL_ITEM_SIZE || "",
       UOM: item.PURCHASE_ORDER_DETAIL?.PURCHASE_UOM || "",
@@ -889,23 +905,27 @@ const DeliverySummaryList = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Delivery Summary");
 
-    XLSX.writeFile(wb, `delivery_summary_${currentSchedule.INVOICE_NO}.xlsx`);
+    XLSX.writeFile(wb, `Delivery Summary Required, INV_${currentSchedule.INVOICE_NO}.xlsx`);
   };
 
   const exportToExcelPackingList = () => {
     let exportData = [];
 
     packingList.forEach((box) => {
+      console.log("box.PACKING_LIST_DETAILS ", box.PACKING_LIST_DETAILS);
+      
       if (box.PACKING_LIST_DETAILS && box.PACKING_LIST_DETAILS.length > 0) {
         box.PACKING_LIST_DETAILS.forEach((detail) => {
           exportData.push({
             "Box Seq/No": box.SEQUENCE,
             "Barcode / QR Code Box": box.BARCODE_CODE || "",
-            MPO: detail.PURCHASE_ORDER_ID || "",
+            "MPO ID": detail.PURCHASE_ORDER_ID || "",
             "Supplier Item ID": detail.SUPPLIER_ITEM_ID || "",
-            Size: detail.SIZE || "",
-            Color: detail.COLOR || "",
-            Pack: detail.PACK || "",
+            "Dim ID": detail.DIM_ID,
+            Color: "",
+            Size: "",
+            OUM: "",
+            PACK: detail.PACK || 0,
             PCS: detail.QUANTITY || 0,
           });
         });
@@ -913,10 +933,12 @@ const DeliverySummaryList = () => {
         exportData.push({
           "Box Seq/No": box.SEQUENCE,
           "Barcode / QR Code Box": box.BARCODE_CODE || "",
-          MPO: "",
+          "MPO ID": "",
           "Supplier Item ID": "",
-          Size: "",
+          "Dim ID": "",
           Color: "",
+          Size: "",
+          OUM: "",
           Pack: "",
           PCS: "",
         });
@@ -928,10 +950,12 @@ const DeliverySummaryList = () => {
         {
           "Box Seq/No": "",
           "Barcode / QR Code Box": "",
-          MPO: "",
+          "MPO ID": "",
           "Supplier Item ID": "",
-          Size: "",
+          "Dim ID": "",
           Color: "",
+          Size: "",
+          OUM: "",
           Pack: "",
           PCS: "",
         },
@@ -1021,6 +1045,7 @@ const DeliverySummaryList = () => {
     if (currentSchedule?.ID) {
       fetchPurchaseOrdersListSell(currentSchedule?.ID);
     }
+    // eslint-disable-next-line
   }, [purchaseOrders]);
 
  const calculateSummary = () => {
@@ -1621,6 +1646,7 @@ const DeliverySummaryList = () => {
                       <AgGridReact
                         rowData={deliveryScheduleList}
                         columnDefs={deliverySummaryLineColumnDefs}
+                        defaultColDef={defaultColDef}
                         pagination={true}
                         enableCellTextSelection={true}
                         onCellValueChanged={handleCellValueChanged2}
@@ -1661,7 +1687,7 @@ const DeliverySummaryList = () => {
                             size="sm"
                           />
                         ) : (
-                          "Import Excel"
+                          "Import Excel (Replace all And Bulk Create)"
                         )}
                       </Button>
                     </div>
@@ -1688,9 +1714,18 @@ const DeliverySummaryList = () => {
                                       <Card.Subtitle className="mb-2">
                                         Barcode / QR CODE:{" "} {box.BARCODE_CODE || "-"}
                                       </Card.Subtitle>
-                                      <Card.Subtitle className="mb-2 text-muted">
-                                        Total Pack:{" "} {box.PACKING_LIST_DETAILS.reduce((sum, item) => sum + item.QUANTITY, 0)}
-                                      </Card.Subtitle>
+                                      <Row style={{width: '350px'}}>
+                                        <Col sm="6">
+                                        <Card.Subtitle className="mb-2 text-muted">
+                                          Total Pack:{" "} {box.PACKING_LIST_DETAILS.reduce((sum, item) => sum + Number(item.PACK), 0)}
+                                        </Card.Subtitle>
+                                        </Col>
+                                        <Col sm="6">
+                                        <Card.Subtitle className="mb-2 text-muted">
+                                          Total Quantity:{" "} {box.PACKING_LIST_DETAILS.reduce((sum, item) => sum + Number(item.QUANTITY), 0)}
+                                        </Card.Subtitle>
+                                        </Col>
+                                      </Row>
                                     </div>
                                     <div>
                                       <button
