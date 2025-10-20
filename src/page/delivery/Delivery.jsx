@@ -31,6 +31,10 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 const DeliverySummaryList = () => {
   const poGridRef = useRef(null);
 
+  const [showBulkPackingModal, setShowBulkPackingModal] = useState(false);
+  const [loadingBulk, setLoadingBulk] = useState(false);
+  const bulkPackingGridRef = useRef(null);
+
   const [schedules, setSchedules] = useState([]);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [deliveryMode, setDeliveryMode] = useState([]);
@@ -45,6 +49,9 @@ const DeliverySummaryList = () => {
   const [modalData, setModalData] = useState(null);
 
   const [deliveryScheduleList, setDeliveryScheduleList] = useState([]);
+  const [deliveryScheduleListUsage, setDeliveryScheduleListUsage] = useState(
+    []
+  );
   const [packingListSummary, setPackingListSummary] = useState([]);
 
   const [loading, setLoading] = useState(false);
@@ -144,6 +151,81 @@ const DeliverySummaryList = () => {
     },
   ];
 
+  const matrixPackingList = [
+    {
+      headerName: "Select",
+      field: "isSelected",
+      width: 80,
+      checkboxSelection: true,
+      headerCheckboxSelection: true,
+    },
+    {
+      headerName: "MPO ID",
+      field: "PURCHASE_ORDER_DETAIL.PURCHASE_ORDER_ID",
+      width: 120,
+    },
+    {
+      headerName: "Item ID",
+      field: "PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_ID",
+      width: 250,
+    },
+    {
+      headerName: "Item Description",
+      field: "PURCHASE_ORDER_DETAIL.ITEM_CODE_DESCRIPTION",
+      width: 250,
+    },
+    {
+      headerName: "Supplier Item ID",
+      field: "PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID",
+      width: 150,
+    },
+    {
+      headerName: "Supplier Item Code",
+      field: "PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.CODE",
+      width: 150,
+    },
+    {
+      headerName: "Supplier Item Description",
+      field: "PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.DESCRIPTION",
+      width: 150,
+    },
+    {
+      headerName: "Available Qty Delivery",
+      field: "AVAILABLE_QUANTITY",
+      width: 120,
+      cellStyle: {color: "green", fontWeight: "bold"},
+    },
+    {
+      headerName: "Pack Per Box",
+      field: "PACK_PER_BOX",
+      width: 130,
+      editable: true,
+      cellEditor: "agNumberCellEditor",
+      cellStyle: {backgroundColor: "#fff3cd"},
+    },
+    {
+      headerName: "Qty per Box",
+      field: "QUANTITY_PER_BOX",
+      width: 130,
+      editable: true,
+      cellEditor: "agNumberCellEditor",
+      cellEditorParams: (params) => ({
+        min: 0,
+        max: params.data?.AVAILABLE_QUANTITY || 0,
+      }),
+      cellStyle: {backgroundColor: "#fff3cd"},
+      valueParser: (params) => {
+        const val = parseInt(params.newValue, 10);
+        if (isNaN(val) || val < 0) return 0;
+        const max = params.data?.AVAILABLE_QUANTITY || 0;
+        return val > max ? max : val;
+      },
+      valueGetter: (params) => {
+        return params.data?.QUANTITY_PER_BOX ?? 0;
+      },
+    },
+  ];
+
   const notConsumeColumnDefs = [
     {
       headerName: "MPO ID",
@@ -177,6 +259,8 @@ const DeliverySummaryList = () => {
       cellStyle: (params) => ({
         backgroundColor: !params.data?.IS_SUPPLIER_ITEM_ID
           ? "#fff3cd"
+          : params.data?.INPUT_QUANTITY
+          ? "#90EE90"
           : "white",
       }),
     },
@@ -186,7 +270,11 @@ const DeliverySummaryList = () => {
       width: 200,
       editable: (params) => !params.data?.IS_SUPPLIER_CODE,
       cellStyle: (params) => ({
-        backgroundColor: !params.data?.IS_SUPPLIER_CODE ? "#fff3cd" : "white",
+        backgroundColor: !params.data?.IS_SUPPLIER_CODE
+          ? "#fff3cd"
+          : params.data?.INPUT_QUANTITY
+          ? "#90EE90"
+          : "white",
       }),
     },
     {
@@ -197,6 +285,8 @@ const DeliverySummaryList = () => {
       cellStyle: (params) => ({
         backgroundColor: !params.data?.IS_SUPPLIER_DESCRIPTION
           ? "#fff3cd"
+          : params.data?.INPUT_QUANTITY
+          ? "#90EE90"
           : "white",
       }),
     },
@@ -283,7 +373,9 @@ const DeliverySummaryList = () => {
       width: 120,
       editable: !currentSchedule?.PACK_ALREADY,
       cellEditor: "agNumberCellEditor",
-      cellStyle: {backgroundColor: !currentSchedule?.PACK_ALREADY ? "#fff3cd" : ""},
+      cellStyle: {
+        backgroundColor: !currentSchedule?.PACK_ALREADY ? "#fff3cd" : "",
+      },
       cellEditorParams: {
         min: 0,
         max: (params) => params.data.QUANTITY_AVAILABLE || 0,
@@ -387,6 +479,25 @@ const DeliverySummaryList = () => {
         },
       });
       setDeliveryScheduleList([...data.data]);
+    } catch (err) {
+      toast.error(
+        err.response?.data?.message ?? "Failed to fetch delivery schedules"
+      );
+    }
+  };
+
+  const fetchDeliverySummariesListUsage = async (deliverySummaryId) => {
+    try {
+      const {data} = await axios.get("/v2/delivery/summary-detail-usage", {
+        params: {DELIVERY_SUMMARY_ID: deliverySummaryId},
+      });
+      setDeliveryScheduleListUsage(
+        data.data.map((item) => ({
+          ...item,
+          QUANTITY_PER_BOX: 0,
+          PACK_PER_BOX: 0,
+        }))
+      );
     } catch (err) {
       toast.error(
         err.response?.data?.message ?? "Failed to fetch delivery schedules"
@@ -890,28 +1001,136 @@ const DeliverySummaryList = () => {
     }
   };
 
+  const handleBulkPackingSubmit = async () => {
+    if (!currentSchedule?.ID) {
+      toast.warn("Schedule ID is missing");
+      return;
+    }
+
+    const selectedNodes = bulkPackingGridRef.current.api.getSelectedNodes();
+    const selectedData = selectedNodes.map((node) => node.data);
+
+    if (selectedData.length === 0) {
+      toast.warn("Please select at least one item");
+      return;
+    }
+
+    
+    const invalidItems = selectedData.filter(
+      (item) =>
+        !item.QUANTITY_PER_BOX ||
+        item.QUANTITY_PER_BOX <= 0 ||
+        !item.PACK_PER_BOX ||
+        item.PACK_PER_BOX < 0
+    );
+    if (invalidItems.length > 0) {
+      toast.warn(
+        "Please enter valid Pack Per Box and Qty per Box for all selected items"
+      );
+      return;
+    }
+
+    
+    let maxBoxes = 0;
+    const itemConfigs = selectedData.map((item) => {
+      const totalQty = Number(item.QUANTITY);
+      const qtyPerBox = Number(item.QUANTITY_PER_BOX);
+      const boxesNeeded = Math.ceil(totalQty / qtyPerBox);
+      maxBoxes = Math.max(maxBoxes, boxesNeeded);
+      return {
+        ...item,
+        totalQty,
+        qtyPerBox,
+        packValue: Number(item.PACK_PER_BOX),
+      };
+    });
+
+    const payload = [];
+
+    
+    for (let boxIndex = 0; boxIndex < maxBoxes; boxIndex++) {
+      const boxSeq = boxIndex + 1;
+
+      
+      for (const config of itemConfigs) {
+        const {totalQty, qtyPerBox, packValue} = config;
+        const qtyUsedSoFar = boxIndex * qtyPerBox;
+        const remaining = totalQty - qtyUsedSoFar;
+
+        if (remaining <= 0) continue; 
+
+        const qtyInThisBox = Math.min(qtyPerBox, remaining);
+
+        payload.push({
+          BOX_SEQ: boxSeq,
+          MPO_ID: config.PURCHASE_ORDER_DETAIL.PURCHASE_ORDER_ID,
+          ITEM_ID: config.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID,
+          DIM_ID: config.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_DIM_ID,
+          COLOR: config.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_COLOR,
+          SIZE: config.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_SIZE,
+          UOM: config.PURCHASE_ORDER_DETAIL.PURCHASE_UOM,
+          PACK: packValue, 
+          QTY: qtyInThisBox, 
+        });
+      }
+    }
+
+    if (payload.length === 0) {
+      toast.warn("No valid items to pack");
+      return;
+    }
+
+    setLoadingBulk(true);
+    try {
+      await axios.post("/packing/list/add-bulk", {
+        DELIVERY_SUMMARY_ID: currentSchedule.ID,
+        LIST_DETAIL: payload,
+      });
+
+      toast.success("Bulk packing list created successfully!");
+      setShowBulkPackingModal(false);
+      fetchPackingList(currentSchedule.ID);
+    } catch (err) {
+      toast.error(
+        err.response?.data?.message ?? "Failed to create packing list"
+      );
+    } finally {
+      setLoadingBulk(false);
+    }
+  };
   const exportToExcel = () => {
     if (!deliveryScheduleList || deliveryScheduleList.length === 0) {
       toast.warn("No data to export");
       return;
     }
 
-    const exportData = deliveryScheduleList.map((item) => ({
-      "MPO ID": item.PURCHASE_ORDER_DETAIL?.PURCHASE_ORDER_ID || "",
-      "Item Description":
-        item.PURCHASE_ORDER_DETAIL?.ITEM_CODE_DESCRIPTION || "",
-      "Supplier Item ID":
-        item.PURCHASE_ORDER_DETAIL?.MASTER_ITEM_SUPPLIER?.ITEM_ID || "",
-      "Supplier Item Code":
-        item.PURCHASE_ORDER_DETAIL?.MASTER_ITEM_SUPPLIER?.CODE || "",
-      "Supplier Item Description":
-        item.PURCHASE_ORDER_DETAIL?.MASTER_ITEM_SUPPLIER?.DESCRIPTION || "",
-      "Dim ID": item.PURCHASE_ORDER_DETAIL?.MATERIAL_ITEM_DIM_ID || "",
-      Color: item.PURCHASE_ORDER_DETAIL?.MATERIAL_ITEM_COLOR || "",
-      Size: item.PURCHASE_ORDER_DETAIL?.MATERIAL_ITEM_SIZE || "",
-      UOM: item.PURCHASE_ORDER_DETAIL?.PURCHASE_UOM || "",
-      Quantity: item.QUANTITY || 0,
-    }));
+    const exportData = [];
+
+    for (let i = 0; i < deliveryScheduleList.length; i++) {
+      const item = deliveryScheduleList[i];
+
+      if (!item.PURCHASE_ORDER_DETAIL?.MASTER_ITEM_SUPPLIER?.ITEM_ID) {
+        toast.error("Supplier item ID must all be required");
+        return;
+      }
+
+      exportData.push({
+        "MPO ID": item.PURCHASE_ORDER_DETAIL?.PURCHASE_ORDER_ID || "",
+        "Item Description":
+          item.PURCHASE_ORDER_DETAIL?.ITEM_CODE_DESCRIPTION || "",
+        "Supplier Item ID":
+          item.PURCHASE_ORDER_DETAIL?.MASTER_ITEM_SUPPLIER?.ITEM_ID || "",
+        "Supplier Item Code":
+          item.PURCHASE_ORDER_DETAIL?.MASTER_ITEM_SUPPLIER?.CODE || "",
+        "Supplier Item Description":
+          item.PURCHASE_ORDER_DETAIL?.MASTER_ITEM_SUPPLIER?.DESCRIPTION || "",
+        "Dim ID": item.PURCHASE_ORDER_DETAIL?.MATERIAL_ITEM_DIM_ID || "",
+        Color: item.PURCHASE_ORDER_DETAIL?.MATERIAL_ITEM_COLOR || "",
+        Size: item.PURCHASE_ORDER_DETAIL?.MATERIAL_ITEM_SIZE || "",
+        UOM: item.PURCHASE_ORDER_DETAIL?.PURCHASE_UOM || "",
+        Quantity: item.QUANTITY || 0,
+      });
+    }
 
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
@@ -924,27 +1143,41 @@ const DeliverySummaryList = () => {
   };
 
   const exportToExcelPackingList = () => {
-    let exportData = [];
+    if (!packingList || packingList.length === 0) {
+      toast.warn("No packing list data to export");
+      return;
+    }
+
+    const exportData = [];
 
     packingList.forEach((box) => {
-      console.log("box.PACKING_LIST_DETAILS ", box.PACKING_LIST_DETAILS);
-
       if (box.PACKING_LIST_DETAILS && box.PACKING_LIST_DETAILS.length > 0) {
         box.PACKING_LIST_DETAILS.forEach((detail) => {
           exportData.push({
             "Box Seq/No": box.SEQUENCE,
             "Barcode / QR Code Box": box.BARCODE_CODE || "",
-            "MPO ID": detail.PURCHASE_ORDER_ID || "",
-            "Supplier Item ID": detail.SUPPLIER_ITEM_ID || "",
-            "Dim ID": detail.DIM_ID,
-            Color: "",
-            Size: "",
-            OUM: "",
-            PACK: detail.PACK || 0,
+            "MPO ID":
+              detail.DELIVERY_SUMMARY_LIST?.PURCHASE_ORDER_DETAIL
+                ?.PURCHASE_ORDER_ID || "N/A",
+            "Supplier Item ID": detail.ITEM_ID || "", 
+            "Dim ID":
+              detail.DELIVERY_SUMMARY_LIST?.PURCHASE_ORDER_DETAIL
+                ?.MATERIAL_ITEM_DIM_ID || "N/A",
+            Color:
+              detail.DELIVERY_SUMMARY_LIST?.PURCHASE_ORDER_DETAIL
+                ?.MATERIAL_ITEM_COLOR || "N/A",
+            Size:
+              detail.DELIVERY_SUMMARY_LIST?.PURCHASE_ORDER_DETAIL
+                ?.MATERIAL_ITEM_SIZE || "N/A",
+            OUM:
+              detail.DELIVERY_SUMMARY_LIST?.PURCHASE_ORDER_DETAIL
+                ?.PURCHASE_UOM || "N/A",
+            Pack: detail.PACK || 0,
             PCS: detail.QUANTITY || 0,
           });
         });
       } else {
+        
         exportData.push({
           "Box Seq/No": box.SEQUENCE,
           "Barcode / QR Code Box": box.BARCODE_CODE || "",
@@ -960,30 +1193,12 @@ const DeliverySummaryList = () => {
       }
     });
 
-    if (!packingList.length) {
-      exportData = [
-        {
-          "Box Seq/No": "",
-          "Barcode / QR Code Box": "",
-          "MPO ID": "",
-          "Supplier Item ID": "",
-          "Dim ID": "",
-          Color: "",
-          Size: "",
-          OUM: "",
-          Pack: "",
-          PCS: "",
-        },
-      ];
-    }
-
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "BOX");
-
+    XLSX.utils.book_append_sheet(wb, ws, "Packing List");
     XLSX.writeFile(
       wb,
-      `Template Packing List INV: ${currentSchedule.INVOICE_NO}.xlsx`
+      `Packing_List_${currentSchedule.INVOICE_NO || "UNKNOWN"}.xlsx`
     );
   };
 
@@ -1029,6 +1244,11 @@ const DeliverySummaryList = () => {
     fetchDeliveryMode();
   };
 
+  const openModalCreateBulk = () => {
+    setShowBulkPackingModal(true);
+    fetchDeliverySummariesListUsage(currentSchedule?.ID);
+  };
+
   useEffect(() => {
     fetchDeliverySummaries();
     fetchDeliveryMode();
@@ -1056,7 +1276,7 @@ const DeliverySummaryList = () => {
     if (currentSchedule?.ID) {
       fetchPurchaseOrdersListSell(currentSchedule?.ID);
     }
-    // eslint-disable-next-line
+     // eslint-disable-next-line
   }, [purchaseOrders]);
 
   const calculateSummary = () => {
@@ -1104,7 +1324,7 @@ const DeliverySummaryList = () => {
     return {labels, data, total, balanceData};
   };
   const summaryData = calculateSummary();
-  
+
   return (
     <div className="container-fluid">
       <input
@@ -1233,6 +1453,53 @@ const DeliverySummaryList = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+      <Modal
+        centered
+        show={showBulkPackingModal}
+        onHide={() => setShowBulkPackingModal(false)}
+        size="xl"
+        backdrop="static"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Create Bulk Packing List</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p className="text-muted mb-3">
+            Select items below and enter <strong>Quantity per Box</strong>.
+            System will auto-calculate number of boxes.
+          </p>
+
+          <div
+            className="ag-theme-alpine"
+            style={{height: "50vh", width: "100%"}}
+          >
+            <AgGridReact
+              rowData={deliveryScheduleListUsage}
+              columnDefs={matrixPackingList}
+              defaultColDef={defaultColDef}
+              rowSelection="multiple"
+              singleClickEdit={true}
+              suppressRowClickSelection={true}
+              ref={bulkPackingGridRef}
+            />
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => setShowBulkPackingModal(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="success"
+            onClick={handleBulkPackingSubmit}
+            disabled={loadingBulk}
+          >
+            {loadingBulk ? <Spinner animation="border" size="sm" /> : "Submit"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
       {!showForm ? (
         <Card>
           <Card.Header className="d-flex justify-content-between align-items-center">
@@ -1352,11 +1619,8 @@ const DeliverySummaryList = () => {
                       }
                     >
                       <option value="">-- Select --</option>
-                      {deliveryMode.map((item) => (
-                        <option
-                          key={item.DELIVERY_MODE_CODE}
-                          value={item.DELIVERY_MODE_DESC}
-                        >
+                      {deliveryMode.map((item, idx) => (
+                        <option key={idx} value={item.DELIVERY_MODE_CODE}>
                           {item.DELIVERY_MODE_CODE} - {item.DELIVERY_MODE_DESC}
                         </option>
                       ))}
@@ -1574,6 +1838,14 @@ const DeliverySummaryList = () => {
                     <div className="d-flex gap-3 align-items-center">
                       <Button size="sm" onClick={exportToExcelPackingList}>
                         Export Template Excel
+                      </Button>
+                      <Button
+                        variant="warning"
+                        size="sm"
+                        onClick={openModalCreateBulk}
+                        disabled={!currentSchedule?.ID}
+                      >
+                        Create Bulk Packing List
                       </Button>
                       <Button
                         size="sm"
