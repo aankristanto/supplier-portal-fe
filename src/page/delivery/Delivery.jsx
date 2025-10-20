@@ -38,7 +38,6 @@ const DeliverySummaryList = () => {
   const [packingList, setPackingList] = useState([]);
 
   const [selectedPurchaseOrders, setSelectedPurchaseOrders] = useState([]);
-  const [showNotConsumeModal, setShowNotConsumeModal] = useState(false);
   const [activeTab, setActiveTab] = useState("summary");
   const [notConsumedItems, setNotConsumedItems] = useState([]);
 
@@ -73,8 +72,8 @@ const DeliverySummaryList = () => {
       headerName: "Select",
       field: "",
       width: 80,
-      checkboxSelection: true,
-      headerCheckboxSelection: true,
+      checkboxSelection: () => !currentSchedule.PACK_ALREADY,
+      headerCheckboxSelection: () => !currentSchedule.PACK_ALREADY,
     },
     {headerName: "PO ID", field: "ID", width: 130},
     {
@@ -135,99 +134,156 @@ const DeliverySummaryList = () => {
       headerName: "Surcharge",
       field: "SURCHARGE_AMOUNT",
       width: 110,
-      cellRenderer: (params) =>
-        params.value ? Number(params.value).toFixed(2) : "-",
+      cellRenderer: (params) => params.value || "-",
     },
     {
       headerName: "Tax %",
       field: "TAX_PERCENTAGE",
       width: 90,
-      cellRenderer: (params) =>
-        params.value ? `${(params.value * 100).toFixed(1)}%` : "-",
+      cellRenderer: (params) => (params.value ? `${params.value}%` : "-"),
     },
   ];
 
   const notConsumeColumnDefs = [
-    {headerName: "MPO ID", field: "PURCHASE_ORDER_ID", width: 120},
-    {headerName: "Item ID", field: "MATERIAL_ITEM_ID", width: 120},
+    {
+      headerName: "MPO ID",
+      field: "PURCHASE_ORDER_ID",
+      width: 120,
+      cellStyle: (params) => ({
+        backgroundColor: params.data?.INPUT_QUANTITY ? "#90EE90" : "white",
+      }),
+    },
+    {
+      headerName: "Item ID",
+      field: "MATERIAL_ITEM_ID",
+      width: 120,
+      cellStyle: (params) => ({
+        backgroundColor: params.data?.INPUT_QUANTITY ? "#90EE90" : "white",
+      }),
+    },
     {
       headerName: "Item Code/Description",
       field: "ITEM_CODE_DESCRIPTION",
       width: 200,
+      cellStyle: (params) => ({
+        backgroundColor: params.data?.INPUT_QUANTITY ? "#90EE90" : "white",
+      }),
     },
     {
       headerName: "Supplier Item Id",
-      field: "ITEM_ID",
+      field: "SUPPLIER_ITEM_ID",
       width: 150,
-      editable: false,
+      editable: (params) => !params.data?.IS_SUPPLIER_ITEM_ID,
+      cellStyle: (params) => ({
+        backgroundColor: !params.data?.IS_SUPPLIER_ITEM_ID
+          ? "#fff3cd"
+          : "white",
+      }),
     },
     {
       headerName: "Supplier Item Code",
       field: "SUPPLIER_CODE",
       width: 200,
-      editable: false,
+      editable: (params) => !params.data?.IS_SUPPLIER_CODE,
+      cellStyle: (params) => ({
+        backgroundColor: !params.data?.IS_SUPPLIER_CODE ? "#fff3cd" : "white",
+      }),
     },
     {
       headerName: "Supplier Item Desc",
       field: "SUPPLIER_DESCRIPTION",
       width: 200,
-      editable: false,
+      editable: (params) => !params.data?.IS_SUPPLIER_DESCRIPTION,
+      cellStyle: (params) => ({
+        backgroundColor: !params.data?.IS_SUPPLIER_DESCRIPTION
+          ? "#fff3cd"
+          : "white",
+      }),
     },
     {
       headerName: "Dim ID",
       field: "MATERIAL_ITEM_DIM_ID",
       width: 100,
-      cellStyle: {fontWeight: "bold"},
+      cellStyle: (params) => ({
+        fontWeight: "bold",
+        backgroundColor: params.data?.INPUT_QUANTITY ? "#90EE90" : "white",
+      }),
     },
     {
       headerName: "Color",
       field: "MATERIAL_ITEM_COLOR",
       width: 100,
-      cellStyle: {fontWeight: "bold"},
+      cellStyle: (params) => ({
+        fontWeight: "bold",
+        backgroundColor: params.data?.INPUT_QUANTITY ? "#90EE90" : "white",
+      }),
     },
     {
       headerName: "Size",
       field: "MATERIAL_ITEM_SIZE",
       width: 100,
-      cellStyle: {fontWeight: "bold"},
+      cellStyle: (params) => ({
+        fontWeight: "bold",
+        backgroundColor: params.data?.INPUT_QUANTITY ? "#90EE90" : "white",
+      }),
     },
     {
       headerName: "Serial NO",
       field: "MATERIAL_ITEM_SERIAL_NO",
       width: 130,
-      cellStyle: {fontWeight: "bold"},
+      cellStyle: (params) => ({
+        fontWeight: "bold",
+        backgroundColor: params.data?.INPUT_QUANTITY ? "#90EE90" : "white",
+      }),
     },
     {
       headerName: "Purchase OUM",
       field: "PURCHASE_UOM",
       width: 100,
-      cellStyle: {fontWeight: "bold"},
+      cellStyle: (params) => ({
+        fontWeight: "bold",
+        backgroundColor: params.data?.INPUT_QUANTITY ? "#90EE90" : "white",
+      }),
     },
     {
       headerName: "PO Qty",
       field: "PURCHASE_ORDER_QTY",
       width: 100,
-      cellStyle: {fontWeight: "bold"},
+      cellStyle: (params) => ({
+        fontWeight: "bold",
+        backgroundColor:
+          Number(params.data.PURCHASE_ORDER_QTY) ===
+          Number(params.data.QUANTITY_USED)
+            ? "#90EE90"
+            : "#FF3131",
+      }),
     },
     {
       headerName: "Used Qty",
       field: "QUANTITY_USED",
       width: 100,
-      cellStyle: {color: "green"},
+      cellStyle: (params) => ({
+        fontWeight: "bold",
+        color: params.value ? "green" : "red",
+      }),
     },
     {
       headerName: "Available Qty",
       field: "QUANTITY_AVAILABLE",
       width: 120,
-      cellStyle: {color: "blue", fontWeight: "bold"},
+      cellStyle: (params) => ({
+        color: params.value ? "blue" : "",
+        fontWeight: "bold",
+        backgroundColor: "white",
+      }),
     },
     {
       headerName: "Allocate Qty",
       field: "INPUT_QUANTITY",
       width: 120,
-      editable: true,
+      editable: !currentSchedule?.PACK_ALREADY,
       cellEditor: "agNumberCellEditor",
-      cellStyle: {backgroundColor: "#fff3cd"},
+      cellStyle: {backgroundColor: !currentSchedule?.PACK_ALREADY ? "#fff3cd" : ""},
       cellEditorParams: {
         min: 0,
         max: (params) => params.data.QUANTITY_AVAILABLE || 0,
@@ -282,92 +338,6 @@ const DeliverySummaryList = () => {
     },
   ];
 
-  const deliverySummaryLineColumnDefs = [
-    {
-      headerName: "MPO ID",
-      field: "PURCHASE_ORDER_DETAIL.PURCHASE_ORDER_ID",
-      width: 130,
-    },
-    {
-      headerName: "Item Description",
-      field: "PURCHASE_ORDER_DETAIL.ITEM_CODE_DESCRIPTION",
-      width: 250,
-    },
-    {
-      headerName: "Supplier Item ID",
-      field: "PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID",
-      width: 150,
-      editable: (params) =>
-        !params.data.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.IS_ITEM_ID,
-      cellStyle: (params) => ({
-        backgroundColor: !params.data.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.IS_ITEM_ID ? "#fff3cd" : "white",
-      }),
-    },
-    {
-      headerName: "Supplier Item Code",
-      field: "PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.CODE",
-      width: 150,
-      editable: (params) =>
-        !params.data.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.IS_CODE,
-      cellStyle: (params) => ({
-        backgroundColor: !params.data.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.IS_CODE ? "#fff3cd" : "white",
-      }),
-    },
-    {
-      headerName: "Supplier Item Description",
-      field: "PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.DESCRIPTION",
-      width: 150,
-      editable: (params) =>
-        !params.data.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.IS_DESCRIPTION,
-      cellStyle: (params) => ({
-        backgroundColor: !params.data.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.IS_DESCRIPTION ? "#fff3cd" : "white",
-      }),
-    },
-    {
-      headerName: "Dim ID",
-      field: "PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_DIM_ID",
-      width: 100,
-    },
-    {
-      headerName: "Color",
-      field: "PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_COLOR",
-      width: 100,
-    },
-    {
-      headerName: "Size",
-      field: "PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_SIZE",
-      width: 90,
-    },
-    {
-      headerName: "Serial NO",
-      field: "PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_SERIAL_NO",
-      width: 90,
-    },
-    {
-      headerName: "UOM",
-      field: "PURCHASE_ORDER_DETAIL.PURCHASE_UOM",
-      width: 80,
-    },
-    {
-      headerName: "Required Quantity",
-      field: "PURCHASE_ORDER_QTY",
-      width: 120,
-      cellStyle: {backgroundColor: "#90EE90", fontWeight: "bold"},
-    },
-    {
-      headerName: "Send Quantity",
-      field: "QUANTITY",
-      width: 120,
-      cellStyle: {color: "green", fontWeight: "bold"},
-    },
-    {
-      headerName: "Balance Quantity",
-      field: "BALANCE_QUANTITY",
-      width: 120,
-      cellStyle: (params) => ({color: !!Number(params.data.BALANCE_QUANTITY)  && "red", fontWeight: "bold"}),
-    },
-  ];
-
   const scheduleColumnDefs = [
     {headerName: "ATD", field: "ATD_DATE", width: 120},
     {headerName: "ATA", field: "ATA_DATE", width: 120},
@@ -416,21 +386,7 @@ const DeliverySummaryList = () => {
           DELIVERY_SUMMARY_ID: deliverySummaryId,
         },
       });
-
-      setDeliveryScheduleList(
-        data.data.map((item) => ({
-          ...item,
-          PURCHASE_ORDER_DETAIL: {
-            ...item.PURCHASE_ORDER_DETAIL,
-            MASTER_ITEM_SUPPLIER: {
-              ...item.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER,
-              IS_ITEM_ID: !!item.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID,
-              IS_CODE: !!item.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.CODE,
-              IS_DESCRIPTION: !!item.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.DESCRIPTION,
-            },
-          },
-        }))
-      );
+      setDeliveryScheduleList([...data.data]);
     } catch (err) {
       toast.error(
         err.response?.data?.message ?? "Failed to fetch delivery schedules"
@@ -446,12 +402,11 @@ const DeliverySummaryList = () => {
           DELIVERY_SUMMARY_ID: deliverySummaryId,
         },
       });
-      if (data.data.length) {
-        setCurrentSchedule({
-          ...currentSchedule,
-          PACK_ALREADY: true,
-        });
-      }
+
+      setCurrentSchedule({
+        ...currentSchedule,
+        PACK_ALREADY: data.data.length > 0,
+      });
 
       setPackingList(data.data || []);
     } catch (err) {
@@ -603,41 +558,64 @@ const DeliverySummaryList = () => {
     }
   };
 
-  const handleSaveAllocations = async () => {
-    if (loading) return;
-    if (!currentSchedule?.ID) return;
+  const handleSaveWithConfirmation = async (listData) => {
+    if (!currentSchedule.PACKING_SLIP_NO || !currentSchedule.INVOICE_NO) {
+      toast.warn("Please fill required fields: Packing Slip No, Invoice No");
+      return false;
+    }
 
     try {
       setLoading(true);
-      const allocationsToSave = notConsumedItems.map((item) => ({
-        PURCHASE_ORDER_DETAIL_ID: item.ID,
-        DELIVERY_SUMMARY_ID: currentSchedule.ID,
-        QUANTITY: item.INPUT_QUANTITY,
-        PURCHASE_ORDER_ID: item.PURCHASE_ORDER_ID,
-      }));
 
-      if (allocationsToSave.length === 0) {
-        toast.warn("No items to save");
-        return;
+      const {data: respData} = await axios.put(
+        `/v2/delivery/summary-list/${currentSchedule.ID}`,
+        {PURCHASE_ORDER_LIST: listData.map((item) => item.ID)}
+      );
+
+      if (respData.data) {
+        const confirm = await Swal.fire({
+          title: "Change MPO?",
+          html: "An MPO is already active.<br><strong>If you proceed, the current MPO data will be permanently lost.</strong>",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "Yes, Change MPO!",
+          cancelButtonText: "Cancel",
+          confirmButtonColor: "#d33",
+          cancelButtonColor: "#3085d6",
+          reverseButtons: true,
+        });
+
+        if (!confirm.isConfirmed) {
+          setLoading(false);
+          return false;
+        }
       }
 
-      await axios.post("/v2/delivery/summary-detail/bulk", {
-        data: allocationsToSave,
-      });
+      const {data} = await axios.put(
+        `/v2/delivery/summary/${currentSchedule.ID}`,
+        {
+          ...currentSchedule,
+          PURCHASE_ORDER_LIST: listData.map((item) => item.ID),
+        }
+      );
 
-      toast.success("Allocations saved successfully!");
-      setShowNotConsumeModal(false);
+      toast.success("Schedule updated successfully!");
+      setCurrentSchedule({
+        ...data.data,
+        PACK_ALREADY: !!currentSchedule?.PACK_ALREADY,
+      });
+      await fetchItemNotCounsume(data.data?.ID);
+
       setLoading(false);
-      setTimeout(() => {
-        fetchDeliverySummariesList(currentSchedule.ID);
-      }, 400);
+      return true;
     } catch (err) {
-      toast.error(err.response?.data?.message ?? "Failed to save allocations");
       setLoading(false);
+      toast.error(err.response?.data?.message ?? "Operation failed");
+      return false;
     }
   };
 
-  const handlePOSelectionChanged = (gridApi) => {
+  const handlePOSelectionChanged = async (gridApi) => {
     const selectedNodes = gridApi.getSelectedNodes();
     const selectedData = selectedNodes.map((node) => node.data);
 
@@ -647,8 +625,25 @@ const DeliverySummaryList = () => {
         (item, index) => item.ID === selectedPurchaseOrders[index]?.ID
       );
 
-    if (!isSame) {
-      setSelectedPurchaseOrders(selectedData);
+    if (isSame) return;
+
+    const snapshotBeforeChange = [...selectedPurchaseOrders];
+
+    if (!isEditing) {
+      const success = await handleSave(selectedData);
+      if (success) {
+        await fetchPurchaseOrdersListSell(success.ID);
+      } else {
+        restoreSelection(snapshotBeforeChange);
+      }
+      return;
+    }
+
+    const success = await handleSaveWithConfirmation(selectedData);
+    if (success) {
+      await fetchPurchaseOrdersListSell(currentSchedule.ID);
+    } else {
+      restoreSelection(snapshotBeforeChange);
     }
   };
 
@@ -674,12 +669,28 @@ const DeliverySummaryList = () => {
     try {
       await axios.delete(`/packing/list/${id}`);
       toast.success("Packing list deleted successfully");
-      fetchPackingList(currentSchedule.ID);
+      fetchPackingList(currentSchedule?.ID);
     } catch (err) {
       toast.error(
         err.response?.data?.message ?? "Failed to delete packing list"
       );
     }
+  };
+
+  const restoreSelection = (previousSelection) => {
+    setSelectedPurchaseOrders([...previousSelection]);
+    setTimeout(() => {
+      if (poGridRef.current?.api) {
+        const api = poGridRef.current.api;
+        api.deselectAll();
+        const prevIds = new Set(previousSelection.map((po) => po.ID));
+        api.forEachNode((node) => {
+          if (node.data?.ID && prevIds.has(node.data.ID)) {
+            node.setSelected(true);
+          }
+        });
+      }
+    }, 0);
   };
 
   const handleAddNew = () => {
@@ -695,6 +706,7 @@ const DeliverySummaryList = () => {
     setShowForm(true);
     await fetchPurchaseOrders();
     fetchDeliverySummariesList(schedule?.ID);
+    await fetchItemNotCounsume(schedule?.ID);
   };
 
   const handleRemoveSchedule = async (scheduleId) => {
@@ -720,84 +732,42 @@ const DeliverySummaryList = () => {
     }
   };
 
-  const handleSave = async () => {
-    if (loading) return;
+  const handleSave = async (listData) => {
+    if (loading) return false;
     if (!currentSchedule.PACKING_SLIP_NO || !currentSchedule.INVOICE_NO) {
       toast.warn("Please fill required fields: Packing Slip No, Invoice No");
-      return;
+      return false;
     }
     try {
       setLoading(true);
-      let response = null;
+      const payload = {
+        ...currentSchedule,
+        PURCHASE_ORDER_LIST: listData.map((item) => item.ID),
+        ID: null,
+      };
+      const {data} = await axios.post("/v2/delivery/summary", payload);
 
-      if (isEditing) {
-        const {data: respData} = await axios.put(
-          `/v2/delivery/summary-list/${currentSchedule.ID}`,
-          {PURCHASE_ORDER_LIST: selectedPurchaseOrders.map((item) => item.ID)}
-        );
-        if (respData.data) {
-          const confirm = await Swal.fire({
-            title: "Change MPO?",
-            html: "An MPO is already active.<br><strong>If you proceed, the current MPO data will be permanently lost.</strong>",
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonText: "Yes, Change MPO!",
-            cancelButtonText: "Cancel",
-            confirmButtonColor: "#d33",
-            cancelButtonColor: "#3085d6",
-            reverseButtons: true,
-          });
-          setLoading(false);
-          if (!confirm.isConfirmed) return;
-        }
-
-        const {data} = await axios.put(
-          `/v2/delivery/summary/${currentSchedule.ID}`,
-          {
-            ...currentSchedule,
-            PURCHASE_ORDER_LIST: selectedPurchaseOrders.map((item) => item.ID),
-          }
-        );
-        response = data.data;
-        toast.success("Schedule updated successfully!");
-      } else {
-        const payload = {
-          ...currentSchedule,
-          PURCHASE_ORDER_LIST: selectedPurchaseOrders.map((item) => item.ID),
-          ID: null,
-        };
-        const {data} = await axios.post("/v2/delivery/summary", payload);
-        response = data.data;
-        toast.success("Schedule created successfully!");
-      }
-
-      handleEditSchedule(response);
+      toast.success("Schedule created successfully!");
+      setCurrentSchedule({
+        ...data.data,
+        PACK_ALREADY: !!currentSchedule?.PACK_ALREADY,
+      });
+      setIsEditing(true);
+      await fetchItemNotCounsume(data.data?.ID);
       setLoading(false);
-      return response?.ID;
+      return data.data;
     } catch (err) {
       setLoading(false);
       toast.error(err.response?.data?.message ?? "Operation failed");
-      return null;
-    }
-  };
-
-  const handleOpenItemConsume = async () => {
-    if (selectedPurchaseOrders.length === 0) {
-      toast.warn("Please select at least one Purchase Order");
-      return;
-    }
-
-    try {
-      const idReq = await handleSave();
-      if (!idReq) return;
-      await fetchItemNotCounsume(idReq);
-      setShowNotConsumeModal(true);
-    } catch (err) {
-      toast.error(err.response?.data?.message ?? "Failed to open modal");
+      return false;
     }
   };
 
   const fetchItemNotCounsume = async (id) => {
+    if (!id) {
+      setNotConsumedItems([]);
+      return;
+    }
     try {
       const {data} = await axios.get("/purchase-order/detail-delivery", {
         params: {DELIVERY_SUMMARY_ID: id},
@@ -808,7 +778,14 @@ const DeliverySummaryList = () => {
         INPUT_QUANTITY: item.QUANTITY_USED || 0,
       }));
 
-      setNotConsumedItems(itemsWithInputs);
+      setNotConsumedItems(
+        itemsWithInputs.map((item) => ({
+          ...item,
+          IS_SUPPLIER_ITEM_ID: !!item?.SUPPLIER_ITEM_ID,
+          IS_SUPPLIER_CODE: !!item?.SUPPLIER_CODE,
+          IS_SUPPLIER_DESCRIPTION: !!item?.SUPPLIER_DESCRIPTION,
+        }))
+      );
     } catch (err) {
       toast.error(err.response?.data?.message ?? "Failed to fetch items");
       setNotConsumedItems([]);
@@ -828,9 +805,14 @@ const DeliverySummaryList = () => {
     }
   };
 
-  const handleCellValueChanged = (params) => {
+  const handleCellValueChanged = async (params) => {
     const {data, colDef, newValue, oldValue} = params;
     const {field} = colDef;
+
+    const updatedItems = notConsumedItems.map((item) =>
+      item.ID === data.ID ? {...item, [field]: newValue} : item
+    );
+    setNotConsumedItems(updatedItems);
 
     if (field === "INPUT_QUANTITY") {
       const numValue = parseFloat(newValue) || 0;
@@ -838,48 +820,74 @@ const DeliverySummaryList = () => {
       const originalUsed = data.QUANTITY_USED || 0;
 
       if (numValue === originalUsed) {
-        const updatedItems = notConsumedItems.map((item) =>
-          item.ID === data.ID ? {...item, INPUT_QUANTITY: numValue} : item
-        );
-        setNotConsumedItems(updatedItems);
         return;
       }
 
       if (numValue > available) {
         toast.warn(`Max available quantity is ${available}`);
 
-        const updatedItems = notConsumedItems.map((item) =>
+        const revertedItems = notConsumedItems.map((item) =>
           item.ID === data.ID ? {...item, INPUT_QUANTITY: oldValue} : item
         );
-        setNotConsumedItems(updatedItems);
+        setNotConsumedItems(revertedItems);
         return;
       }
+
+      try {
+        await axios.post("/v2/delivery/summary-detail/bulk", {
+          data: [
+            {
+              PURCHASE_ORDER_DETAIL_ID: data.ID,
+              DELIVERY_SUMMARY_ID: currentSchedule.ID,
+              QUANTITY: numValue,
+              PURCHASE_ORDER_ID: data.PURCHASE_ORDER_ID,
+            },
+          ],
+        });
+
+        toast.success("Allocation saved!");
+        await fetchItemNotCounsume(currentSchedule.ID);
+        fetchDeliverySummariesList(currentSchedule.ID);
+      } catch (err) {
+        toast.error(err.response?.data?.message ?? "Failed to save allocation");
+
+        const revertedItems = notConsumedItems.map((item) =>
+          item.ID === data.ID ? {...item, INPUT_QUANTITY: oldValue} : item
+        );
+        setNotConsumedItems(revertedItems);
+      }
+    } else if (
+      ["SUPPLIER_ITEM_ID", "SUPPLIER_CODE", "SUPPLIER_DESCRIPTION"].includes(
+        field
+      )
+    ) {
+      if (!data.SUPPLIER_ITEM_ID) {
+        toast.warn("Supplier ID not found. Cannot update.");
+        const revertedItems = notConsumedItems.map((item) =>
+          item.ID === data.ID ? {...item, [field]: oldValue} : item
+        );
+        setNotConsumedItems(revertedItems);
+        return;
+      }
+
+      try {
+        await axios.put(`/master-item-supplier/${data.SUPPLIER_ID}`, {
+          ITEM_ID: data.SUPPLIER_ITEM_ID,
+          CODE: data.SUPPLIER_CODE,
+          DESCRIPTION: data.SUPPLIER_DESCRIPTION,
+        });
+
+        toast.success("Supplier info updated!");
+        fetchItemNotCounsume(currentSchedule.ID);
+        fetchDeliverySummariesList(currentSchedule.ID);
+      } catch (err) {
+        toast.error(err.response?.data?.message ?? "Failed to update supplier");
+        const revertedItems = notConsumedItems.map((item) =>
+          item.ID === data.ID ? {...item, [field]: oldValue} : item
+        );
+        setNotConsumedItems(revertedItems);
+      }
     }
-
-    const updatedItems = notConsumedItems.map((item) =>
-      item.ID === data.ID ? {...item, [field]: newValue} : item
-    );
-    setNotConsumedItems(updatedItems);
-  };
-
-  const handleCellValueChanged2 = async (params) => {
-    const {data} = params;
-    try {
-      await axios.put(
-        `/master-item-supplier/${data.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ID}`,
-        {
-          ITEM_ID: data.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID,
-          CODE: data.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.CODE,
-          DESCRIPTION:
-            data.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.DESCRIPTION,
-        }
-      );
-
-      toast.success("Supplier updated successfully!");
-    } catch (err) {
-      toast.error(err.response?.data?.message ?? "Failed to update supplier");
-    }
-    fetchDeliverySummariesList(currentSchedule.ID);
   };
 
   const exportToExcel = () => {
@@ -909,7 +917,10 @@ const DeliverySummaryList = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Delivery Summary");
 
-    XLSX.writeFile(wb, `Delivery Summary Required, INV_${currentSchedule.INVOICE_NO}.xlsx`);
+    XLSX.writeFile(
+      wb,
+      `Delivery Summary Required, INV_${currentSchedule.INVOICE_NO}.xlsx`
+    );
   };
 
   const exportToExcelPackingList = () => {
@@ -917,7 +928,7 @@ const DeliverySummaryList = () => {
 
     packingList.forEach((box) => {
       console.log("box.PACKING_LIST_DETAILS ", box.PACKING_LIST_DETAILS);
-      
+
       if (box.PACKING_LIST_DETAILS && box.PACKING_LIST_DETAILS.length > 0) {
         box.PACKING_LIST_DETAILS.forEach((detail) => {
           exportData.push({
@@ -1048,53 +1059,52 @@ const DeliverySummaryList = () => {
     // eslint-disable-next-line
   }, [purchaseOrders]);
 
- const calculateSummary = () => {
-  if (!deliveryScheduleList || deliveryScheduleList.length === 0) {
-    return {labels: [], data: [], total: 0, balanceData: []};
-  }
-
-  const grouped = deliveryScheduleList.reduce((acc, item) => {
-    const itemId =
-      item.PURCHASE_ORDER_DETAIL?.MASTER_ITEM_SUPPLIER?.ITEM_ID || "Unknown";
-    const dimId =
-      item.PURCHASE_ORDER_DETAIL?.MATERIAL_ITEM_DIM_ID || "Unknown";
-    const key = `${itemId} (${dimId})`;
-
-    if (!acc[key]) {
-      acc[key] = {scheduledQty: 0, itemId, dimId};
+  const calculateSummary = () => {
+    if (!deliveryScheduleList || deliveryScheduleList.length === 0) {
+      return {labels: [], data: [], total: 0, balanceData: []};
     }
-    acc[key].scheduledQty += item.QUANTITY || 0;
-    return acc;
-  }, {});
 
-  const labels = Object.keys(grouped);
-  const data = labels.map((label) => grouped[label].scheduledQty);
-  const total = data.reduce((sum, qty) => sum + qty, 0);
+    const grouped = deliveryScheduleList.reduce((acc, item) => {
+      const itemId =
+        item.PURCHASE_ORDER_DETAIL?.MASTER_ITEM_SUPPLIER?.ITEM_ID || "Unknown";
+      const dimId =
+        item.PURCHASE_ORDER_DETAIL?.MATERIAL_ITEM_DIM_ID || "Unknown";
+      const key = `${itemId} (${dimId})`;
 
-  const balanceData = labels.map((label) => {
-    const {itemId, dimId} = grouped[label];
-    const scheduledQty = grouped[label].scheduledQty;
-
-    let packedQty = 0;
-    packingListSummary.forEach((p) => {
-      const pItemId = p.ITEM?.ITEM_ID;
-      const pDimId =
-        p.DELIVERY_SUMMARY_LIST?.PURCHASE_ORDER_DETAIL?.MATERIAL_ITEM_DIM_ID;
-
-        
-      if (pItemId === itemId && pDimId === dimId) {
-        packedQty += p.TOTAL_QUANTITY || 0;
+      if (!acc[key]) {
+        acc[key] = {scheduledQty: 0, itemId, dimId};
       }
+      acc[key].scheduledQty += item.QUANTITY || 0;
+      return acc;
+    }, {});
+
+    const labels = Object.keys(grouped);
+    const data = labels.map((label) => grouped[label].scheduledQty);
+    const total = data.reduce((sum, qty) => sum + qty, 0);
+
+    const balanceData = labels.map((label) => {
+      const {itemId, dimId} = grouped[label];
+      const scheduledQty = grouped[label].scheduledQty;
+
+      let packedQty = 0;
+      packingListSummary.forEach((p) => {
+        const pItemId = p.ITEM?.ITEM_ID;
+        const pDimId =
+          p.DELIVERY_SUMMARY_LIST?.PURCHASE_ORDER_DETAIL?.MATERIAL_ITEM_DIM_ID;
+
+        if (pItemId === itemId && pDimId === dimId) {
+          packedQty += p.TOTAL_QUANTITY || 0;
+        }
+      });
+
+      const balance = scheduledQty - packedQty;
+      return {label, itemId, dimId, scheduledQty, packedQty, balance};
     });
 
-    const balance = scheduledQty - packedQty;
-    return {label, itemId, dimId, scheduledQty, packedQty, balance};
-  });
-
-  return {labels, data, total, balanceData};
-};
+    return {labels, data, total, balanceData};
+  };
   const summaryData = calculateSummary();
-
+  
   return (
     <div className="container-fluid">
       <input
@@ -1220,48 +1230,6 @@ const DeliverySummaryList = () => {
             }}
           >
             Delete Packing List
-          </Button>
-        </Modal.Footer>
-      </Modal>
-      <Modal
-        show={showNotConsumeModal}
-        onHide={() => setShowNotConsumeModal(false)}
-        size="xl"
-        backdrop="static"
-        keyboard={false}
-        centered
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Items Not Fully Consumed</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {notConsumedItems.length > 0 ? (
-            <div
-              className="ag-theme-alpine"
-              style={{height: "60vh", width: "100%"}}
-            >
-              <AgGridReact
-                rowData={notConsumedItems}
-                columnDefs={notConsumeColumnDefs}
-                pagination={true}
-                paginationPageSize={15}
-                enableCellTextSelection={true}
-                onCellValueChanged={handleCellValueChanged}
-              />
-            </div>
-          ) : (
-            <div className="text-center py-4">
-              <h5>All items have been fully consumed!</h5>
-              <p className="text-muted">No remaining quantities to schedule.</p>
-            </div>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="gray" onClick={() => setShowNotConsumeModal(false)}>
-            Close
-          </Button>
-          <Button variant="success" onClick={handleSaveAllocations}>
-            Save
           </Button>
         </Modal.Footer>
       </Modal>
@@ -1530,32 +1498,32 @@ const DeliverySummaryList = () => {
             onSelect={(e) => changeTab(e)}
           >
             <Tab eventKey="summary" title="Summary">
-              {!currentSchedule.PACK_ALREADY && (
-                <Card className="my-4">
-                  <Card.Header>
-                    <h5>Select Purchase Orders</h5>
-                  </Card.Header>
-                  <Card.Body>
-                    <div
-                      className="ag-theme-alpine"
-                      style={{height: "300px", width: "100%"}}
-                    >
-                      <AgGridReact
-                        ref={poGridRef}
-                        key={currentSchedule.ATD_DATE || ""}
-                        rowData={purchaseOrders}
-                        columnDefs={poColumnDefs}
-                        defaultColDef={defaultColDef}
-                        rowSelection="multiple"
-                        onSelectionChanged={(event) =>
-                          handlePOSelectionChanged(event.api)
-                        }
-                        suppressRowClickSelection={true}
-                      />
-                    </div>
-                  </Card.Body>
-                </Card>
-              )}
+              <Card className="my-4">
+                <Card.Header>
+                  <h5>Select Purchase Orders</h5>
+                </Card.Header>
+                <Card.Body>
+                  <div
+                    className="ag-theme-alpine"
+                    style={{height: "300px", width: "100%"}}
+                  >
+                    <AgGridReact
+                      ref={poGridRef}
+                      key={currentSchedule.ATD_DATE || ""}
+                      rowData={purchaseOrders}
+                      columnDefs={poColumnDefs}
+                      defaultColDef={defaultColDef}
+                      rowSelection={
+                        !currentSchedule.PACK_ALREADY ? "multiple" : false
+                      }
+                      onSelectionChanged={(event) =>
+                        handlePOSelectionChanged(event.api)
+                      }
+                      suppressRowClickSelection={true}
+                    />
+                  </div>
+                </Card.Body>
+              </Card>
               <Card>
                 <Card.Header>
                   <div className="d-flex justify-content-between align-items-center">
@@ -1568,40 +1536,31 @@ const DeliverySummaryList = () => {
                       >
                         Export Excel
                       </Button>
-                      {!currentSchedule.PACK_ALREADY && (
-                        <Button
-                          className="mx-3"
-                          variant="success"
-                          size="sm"
-                          onClick={handleOpenItemConsume}
-                        >
-                          Save & Add Purchsae Order List
-                        </Button>
-                      )}
                     </div>
                   </div>
                 </Card.Header>
                 <Card.Body>
-                  {schedules.length > 0 ? (
+                  {notConsumedItems.length > 0 ? (
                     <div
                       className="ag-theme-alpine"
-                      style={{height: "500px", width: "100%"}}
+                      style={{height: "60vh", width: "100%"}}
                     >
                       <AgGridReact
-                        rowData={deliveryScheduleList}
-                        columnDefs={deliverySummaryLineColumnDefs}
+                        rowData={notConsumedItems}
                         defaultColDef={defaultColDef}
+                        columnDefs={notConsumeColumnDefs}
                         pagination={true}
+                        paginationPageSize={15}
                         enableCellTextSelection={true}
-                        onCellValueChanged={handleCellValueChanged2}
-                        stopEditingWhenCellsLoseFocus={true}
-                        singleClickEdit={true}
-                        suppressClickEdit={false}
+                        onCellValueChanged={handleCellValueChanged}
                       />
                     </div>
                   ) : (
                     <div className="text-center py-4">
-                      <p>No List Item Purchsaer Order found.</p>
+                      <h5>All items have been fully consumed!</h5>
+                      <p className="text-muted">
+                        No remaining quantities to schedule.
+                      </p>
                     </div>
                   )}
                 </Card.Body>
@@ -1656,18 +1615,29 @@ const DeliverySummaryList = () => {
                                         Box Seq {box.SEQUENCE}
                                       </Card.Title>
                                       <Card.Subtitle className="mb-2">
-                                        Barcode / QR CODE:{" "} {box.BARCODE_CODE || "-"}
+                                        Barcode / QR CODE:{" "}
+                                        {box.BARCODE_CODE || "-"}
                                       </Card.Subtitle>
-                                      <Row style={{width: '350px'}}>
+                                      <Row style={{width: "350px"}}>
                                         <Col sm="6">
-                                        <Card.Subtitle className="mb-2 text-muted">
-                                          Total Pack:{" "} {box.PACKING_LIST_DETAILS.reduce((sum, item) => sum + Number(item.PACK), 0)}
-                                        </Card.Subtitle>
+                                          <Card.Subtitle className="mb-2 text-muted">
+                                            Total Pack:{" "}
+                                            {box.PACKING_LIST_DETAILS.reduce(
+                                              (sum, item) =>
+                                                sum + Number(item.PACK),
+                                              0
+                                            )}
+                                          </Card.Subtitle>
                                         </Col>
                                         <Col sm="6">
-                                        <Card.Subtitle className="mb-2 text-muted">
-                                          Total Quantity:{" "} {box.PACKING_LIST_DETAILS.reduce((sum, item) => sum + Number(item.QUANTITY), 0)}
-                                        </Card.Subtitle>
+                                          <Card.Subtitle className="mb-2 text-muted">
+                                            Total Quantity:{" "}
+                                            {box.PACKING_LIST_DETAILS.reduce(
+                                              (sum, item) =>
+                                                sum + Number(item.QUANTITY),
+                                              0
+                                            )}
+                                          </Card.Subtitle>
                                         </Col>
                                       </Row>
                                     </div>
