@@ -1675,7 +1675,7 @@ const DeliverySummaryList = () => {
                   </Form.Group>
                 </Col>
 
-                <Col md={3}>
+                <Col md={4}>
                   <Form.Group>
                     <Form.Label>Packing Slip No *</Form.Label>
                     <Form.Control
@@ -1690,7 +1690,7 @@ const DeliverySummaryList = () => {
                     />
                   </Form.Group>
                 </Col>
-                <Col md={3}>
+                <Col md={4}>
                   <Form.Group>
                     <Form.Label>Invoice No *</Form.Label>
                     <Form.Control
@@ -1705,22 +1705,7 @@ const DeliverySummaryList = () => {
                     />
                   </Form.Group>
                 </Col>
-                <Col md={3}>
-                  <Form.Group>
-                    <Form.Label>Forwarder Note</Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={currentSchedule.FORWARDER_NOTE}
-                      onChange={(e) =>
-                        setCurrentSchedule({
-                          ...currentSchedule,
-                          FORWARDER_NOTE: e.target.value,
-                        })
-                      }
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={3}>
+                <Col md={4}>
                   <Form.Group>
                     <Form.Label>Container No</Form.Label>
                     <Form.Control
