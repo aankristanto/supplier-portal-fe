@@ -1089,14 +1089,14 @@ const DeliverySummaryList = () => {
 
       toast.success("Bulk packing list created successfully!");
       setShowBulkPackingModal(false);
+      setLoadingBulk(false);
       fetchPackingList(currentSchedule.ID);
     } catch (err) {
+      setLoadingBulk(false);
       toast.error(
         err.response?.data?.message ?? "Failed to create packing list"
       );
-    } finally {
-      setLoadingBulk(false);
-    }
+    } 
   };
   const exportToExcel = () => {
     if (!deliveryScheduleList || deliveryScheduleList.length === 0) {
