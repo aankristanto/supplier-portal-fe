@@ -2,7 +2,7 @@ import React, {useEffect, useRef, useState} from "react";
 import {AgGridReact} from "ag-grid-react";
 import {Pie} from "react-chartjs-2";
 import {Chart as ChartJS, ArcElement, Tooltip, Legend} from "chart.js";
-import { Typeahead } from 'react-bootstrap-typeahead';
+import {Typeahead} from "react-bootstrap-typeahead";
 import * as XLSX from "xlsx";
 
 import {
@@ -51,6 +51,7 @@ const DeliverySummaryList = () => {
 
   const [modalShow, setModalShow] = useState(false);
   const [modalData, setModalData] = useState(null);
+  const [totalBoxToGenerate, setTotalBoxToGenerate] = useState(1);
 
   const [deliveryScheduleList, setDeliveryScheduleList] = useState([]);
   const [deliveryScheduleListUsage, setDeliveryScheduleListUsage] = useState(
@@ -164,36 +165,6 @@ const DeliverySummaryList = () => {
       headerCheckboxSelection: true,
     },
     {
-      headerName: "MPO ID",
-      field: "PURCHASE_ORDER_DETAIL.PURCHASE_ORDER_ID",
-      width: 120,
-    },
-    {
-      headerName: "Item ID",
-      field: "PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_ID",
-      width: 250,
-    },
-    {
-      headerName: "Item Description",
-      field: "PURCHASE_ORDER_DETAIL.ITEM_CODE_DESCRIPTION",
-      width: 250,
-    },
-    {
-      headerName: "Supplier Item ID",
-      field: "PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID",
-      width: 150,
-    },
-    {
-      headerName: "Supplier Item Code",
-      field: "PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.CODE",
-      width: 150,
-    },
-    {
-      headerName: "Supplier Item Description",
-      field: "PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.DESCRIPTION",
-      width: 150,
-    },
-    {
       headerName: "Available Qty Delivery",
       field: "AVAILABLE_QUANTITY",
       width: 120,
@@ -227,6 +198,36 @@ const DeliverySummaryList = () => {
       valueGetter: (params) => {
         return params.data?.QUANTITY_PER_BOX ?? 0;
       },
+    },
+    {
+      headerName: "MPO ID",
+      field: "PURCHASE_ORDER_DETAIL.PURCHASE_ORDER_ID",
+      width: 120,
+    },
+    {
+      headerName: "Item ID",
+      field: "PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_ID",
+      width: 250,
+    },
+    {
+      headerName: "Item Description",
+      field: "PURCHASE_ORDER_DETAIL.ITEM_CODE_DESCRIPTION",
+      width: 250,
+    },
+    {
+      headerName: "Supplier Item ID",
+      field: "PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID",
+      width: 150,
+    },
+    {
+      headerName: "Supplier Item Code",
+      field: "PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.CODE",
+      width: 150,
+    },
+    {
+      headerName: "Purchsase OUM",
+      field: "PURCHASE_ORDER_DETAIL.PURCHASE_UOM",
+      width: 150,
     },
   ];
 
@@ -367,7 +368,9 @@ const DeliverySummaryList = () => {
       },
       cellEditorParams: {
         min: 0,
-        max: (params) => (Number(params.data.QUANTITY_AVAILABLE) + Number(params.data?.QUANTITY_USED)) || 0,
+        max: (params) =>
+          Number(params.data.QUANTITY_AVAILABLE) +
+            Number(params.data?.QUANTITY_USED) || 0,
       },
       valueParser: (params) => {
         const val = parseFloat(params.newValue);
@@ -433,14 +436,16 @@ const DeliverySummaryList = () => {
       headerName: "Created Date",
       field: "CREATED_AT",
       width: 150,
-      cellRenderer: (params) => params.value ?  moment(params.value).format("DD-MM-YYYY HH:mm") : "",
+      cellRenderer: (params) =>
+        params.value ? moment(params.value).format("DD-MM-YYYY HH:mm") : "",
     },
     {headerName: "Updated By", field: "UPDATED.INITIAL", width: 150},
     {
       headerName: "Updated Date",
       field: "UPDATED_AT",
       width: 150,
-      cellRenderer: (params) => params.value ? moment(params.value).format("DD-MM-YYYY HH:mm") : "",
+      cellRenderer: (params) =>
+        params.value ? moment(params.value).format("DD-MM-YYYY HH:mm") : "",
     },
     {
       headerName: "Actions",
@@ -839,40 +844,38 @@ const DeliverySummaryList = () => {
       return false;
     }
 
-
     if (isEditing) {
-        const {data: respData} = await axios.put(
-          `/v2/delivery/summary-list/${currentSchedule.ID}`,
-          {PURCHASE_ORDER_LIST: selectedPurchaseOrders.map((item) => item.ID)}
-        );
-        if (respData.data) {
-          const confirm = await Swal.fire({
-            title: "Change MPO?",
-            html: "An MPO is already active.<br><strong>If you proceed, the current MPO data will be permanently lost.</strong>",
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonText: "Yes, Change MPO!",
-            cancelButtonText: "Cancel",
-            confirmButtonColor: "#d33",
-            cancelButtonColor: "#3085d6",
-            reverseButtons: true,
-          });
-          setLoading(false);
-          if (!confirm.isConfirmed) return;
-        }
-
-        const {data} = await axios.put(
-          `/v2/delivery/summary/${currentSchedule.ID}`,
-          {
-            ...currentSchedule,
-            PURCHASE_ORDER_LIST: selectedPurchaseOrders.map((item) => item.ID),
-          }
-        );
-        handleEditSchedule(data.data);
-        toast.success("Schedule updated successfully!");
-        return
+      const {data: respData} = await axios.put(
+        `/v2/delivery/summary-list/${currentSchedule.ID}`,
+        {PURCHASE_ORDER_LIST: selectedPurchaseOrders.map((item) => item.ID)}
+      );
+      if (respData.data) {
+        const confirm = await Swal.fire({
+          title: "Change MPO?",
+          html: "An MPO is already active.<br><strong>If you proceed, the current MPO data will be permanently lost.</strong>",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "Yes, Change MPO!",
+          cancelButtonText: "Cancel",
+          confirmButtonColor: "#d33",
+          cancelButtonColor: "#3085d6",
+          reverseButtons: true,
+        });
+        setLoading(false);
+        if (!confirm.isConfirmed) return;
       }
 
+      const {data} = await axios.put(
+        `/v2/delivery/summary/${currentSchedule.ID}`,
+        {
+          ...currentSchedule,
+          PURCHASE_ORDER_LIST: selectedPurchaseOrders.map((item) => item.ID),
+        }
+      );
+      handleEditSchedule(data.data);
+      toast.success("Schedule updated successfully!");
+      return;
+    }
 
     try {
       setLoading(true);
@@ -959,7 +962,7 @@ const DeliverySummaryList = () => {
         return;
       }
 
-      if (numValue > (available + originalUsed)) {
+      if (numValue > available + originalUsed) {
         toast.warn(`Max available quantity is ${available}`);
 
         const revertedItems = notConsumedItems.map((item) =>
@@ -1055,35 +1058,32 @@ const DeliverySummaryList = () => {
       return;
     }
 
-    let maxBoxes = 0;
-    const itemConfigs = selectedData.map((item) => {
-      const totalQty = Number(item.QUANTITY);
-      const qtyPerBox = Number(item.QUANTITY_PER_BOX);
-      const boxesNeeded = Math.ceil(totalQty / qtyPerBox);
-      maxBoxes = Math.max(maxBoxes, boxesNeeded);
-      return {
-        ...item,
-        totalQty,
-        qtyPerBox,
-        packValue: Number(item.PACK_PER_BOX),
-      };
-    });
+    const itemConfigs = selectedData.map((item) => ({
+      ...item,
+      totalQty: Number(item.QUANTITY),
+      qtyPerBox: Number(item.QUANTITY_PER_BOX),
+      packValue: Number(item.PACK_PER_BOX),
+      remainingQty: Number(item.AVAILABLE_QUANTITY),
+
+      uniqueKey: `${item.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID}_${item.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_DIM_ID}`,
+    }));
 
     const payload = [];
+    let boxIndex = 0;
 
-    for (let boxIndex = 0; boxIndex < maxBoxes; boxIndex++) {
+    while (boxIndex < totalBoxToGenerate) {
+      let allItemsHaveQty = true;
       const boxSeq = boxIndex + 1;
+      const boxItems = [];
 
       for (const config of itemConfigs) {
-        const {totalQty, qtyPerBox, packValue} = config;
-        const qtyUsedSoFar = boxIndex * qtyPerBox;
-        const remaining = totalQty - qtyUsedSoFar;
+        if (config.remainingQty <= 0) {
+          allItemsHaveQty = false;
+          break;
+        }
 
-        if (remaining <= 0) continue;
-
-        const qtyInThisBox = Math.min(qtyPerBox, remaining);
-
-        payload.push({
+        const qtyInThisBox = Math.min(config.qtyPerBox, config.remainingQty);
+        boxItems.push({
           BOX_SEQ: boxSeq,
           MPO_ID: config.PURCHASE_ORDER_DETAIL.PURCHASE_ORDER_ID,
           ITEM_ID: config.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID,
@@ -1091,10 +1091,26 @@ const DeliverySummaryList = () => {
           COLOR: config.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_COLOR,
           SIZE: config.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_SIZE,
           UOM: config.PURCHASE_ORDER_DETAIL.PURCHASE_UOM,
-          PACK: packValue,
+          PACK: config.packValue,
           QTY: qtyInThisBox,
         });
       }
+
+      if (!allItemsHaveQty) {
+        break;
+      }
+
+      for (const item of boxItems) {
+        payload.push(item);
+        const config = itemConfigs.find(
+          (c) => c.uniqueKey === `${item.ITEM_ID}_${item.DIM_ID}`
+        );
+        if (config) {
+          config.remainingQty -= item.QTY;
+        }
+      }
+
+      boxIndex++;
     }
 
     if (payload.length === 0) {
@@ -1111,15 +1127,16 @@ const DeliverySummaryList = () => {
 
       toast.success("Bulk packing list created successfully!");
       setShowBulkPackingModal(false);
-      setLoadingBulk(false);
       fetchPackingList(currentSchedule.ID);
     } catch (err) {
-      setLoadingBulk(false);
       toast.error(
         err.response?.data?.message ?? "Failed to create packing list"
       );
+    } finally {
+      setLoadingBulk(false);
     }
   };
+
   const exportToExcel = () => {
     if (!deliveryScheduleList || deliveryScheduleList.length === 0) {
       toast.warn("No data to export");
@@ -1144,8 +1161,6 @@ const DeliverySummaryList = () => {
           item.PURCHASE_ORDER_DETAIL?.MASTER_ITEM_SUPPLIER?.ITEM_ID || "",
         "Supplier Item Code":
           item.PURCHASE_ORDER_DETAIL?.MASTER_ITEM_SUPPLIER?.CODE || "",
-        "Supplier Item Description":
-          item.PURCHASE_ORDER_DETAIL?.MASTER_ITEM_SUPPLIER?.DESCRIPTION || "",
         "Dim ID": item.PURCHASE_ORDER_DETAIL?.MATERIAL_ITEM_DIM_ID || "",
         Color: item.PURCHASE_ORDER_DETAIL?.MATERIAL_ITEM_COLOR || "",
         Size: item.PURCHASE_ORDER_DETAIL?.MATERIAL_ITEM_SIZE || "",
@@ -1270,22 +1285,30 @@ const DeliverySummaryList = () => {
     fetchDeliverySummariesListUsage(currentSchedule?.ID);
   };
 
-  const selectedCountry = countries.find(country => country.COUNTRY_NAME === currentSchedule.PORT_OF_LOADING) ? [countries.find(country => country.COUNTRY_NAME === currentSchedule.PORT_OF_LOADING)] : [];
+  const selectedCountry = countries.find(
+    (country) => country.COUNTRY_NAME === currentSchedule.PORT_OF_LOADING
+  )
+    ? [
+        countries.find(
+          (country) => country.COUNTRY_NAME === currentSchedule.PORT_OF_LOADING
+        ),
+      ]
+    : [];
 
-const handleCountryChange = (selected) => {
-  const country = selected[0];
-  setCurrentSchedule({
-    ...currentSchedule,
-    PORT_OF_LOADING: country ? country.COUNTRY_NAME : '',
-  });
-};
+  const handleCountryChange = (selected) => {
+    const country = selected[0];
+    setCurrentSchedule({
+      ...currentSchedule,
+      PORT_OF_LOADING: country ? country.COUNTRY_NAME : "",
+    });
+  };
 
-const handleShippingTermChange = (e) => {
-  setCurrentSchedule({
-    ...currentSchedule,
-    TERM_OF_DELIVERY: e.target.value,
-  });
-};
+  const handleShippingTermChange = (e) => {
+    setCurrentSchedule({
+      ...currentSchedule,
+      TERM_OF_DELIVERY: e.target.value,
+    });
+  };
 
   useEffect(() => {
     const fetchCountries = async () => {
@@ -1523,11 +1546,27 @@ const handleShippingTermChange = (e) => {
           <Modal.Title>Create Bulk Packing List</Modal.Title>
         </Modal.Header>
         <Modal.Body>
+          <Form.Group className="mb-3">
+            <Form.Label>
+              <strong>Total Box to Generate</strong>
+            </Form.Label>
+            <Form.Control
+              type="number"
+              min="1"
+              value={totalBoxToGenerate}
+              onChange={(e) => {
+                setTotalBoxToGenerate(e.target.value);
+              }}
+            />
+            <Form.Text className="text-muted">
+              System will create this many boxes for all selected items (limited
+              by item availability).
+            </Form.Text>
+          </Form.Group>
+
           <p className="text-muted mb-3">
             Select items below and enter <strong>Quantity per Box</strong>.
-            System will auto-calculate number of boxes.
           </p>
-
           <div
             className="ag-theme-alpine"
             style={{height: "50vh", width: "100%"}}
@@ -1703,35 +1742,39 @@ const handleShippingTermChange = (e) => {
                   </Form.Group>
                 </Col>
                 <Col md={3}>
-  <Form.Group>
-    <Form.Label>Port of Loading</Form.Label>
-    <Typeahead
-      id="port-of-loading-typeahead"
-      labelKey="COUNTRY_NAME"
-      options={countries}
-      selected={selectedCountry}
-      onChange={handleCountryChange}
-      placeholder="Select country..."
-    />
-  </Form.Group>
-</Col>
+                  <Form.Group>
+                    <Form.Label>Port of Loading</Form.Label>
+                    <Typeahead
+                      id="port-of-loading-typeahead"
+                      labelKey="COUNTRY_NAME"
+                      options={countries}
+                      selected={selectedCountry}
+                      onChange={handleCountryChange}
+                      placeholder="Select country..."
+                    />
+                  </Form.Group>
+                </Col>
 
-<Col md={3}>
-  <Form.Group>
-    <Form.Label>Term of Delivery</Form.Label>
-    <Form.Select
-      value={currentSchedule.TERM_OF_DELIVERY || ''}
-      onChange={handleShippingTermChange}
-    >
-      <option value="">Select Term...</option>
-      {shippingTerms.map((term) => (
-        <option key={term.SHIPPING_TERMS_ID} value={term.SHIPPING_TERMS_CODE}>
-          {term.SHIPPING_TERMS_CODE} — {term.SHIPPING_TERMS_DESC}
-        </option>
-      ))}
-    </Form.Select>
-  </Form.Group>
-</Col>
+                <Col md={3}>
+                  <Form.Group>
+                    <Form.Label>Term of Delivery</Form.Label>
+                    <Form.Select
+                      value={currentSchedule.TERM_OF_DELIVERY || ""}
+                      onChange={handleShippingTermChange}
+                    >
+                      <option value="">Select Term...</option>
+                      {shippingTerms.map((term) => (
+                        <option
+                          key={term.SHIPPING_TERMS_ID}
+                          value={term.SHIPPING_TERMS_CODE}
+                        >
+                          {term.SHIPPING_TERMS_CODE} —{" "}
+                          {term.SHIPPING_TERMS_DESC}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Packing Slip No *</Form.Label>

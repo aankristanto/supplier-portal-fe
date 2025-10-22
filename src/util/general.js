@@ -88,19 +88,19 @@ export const printMpoToPdf = (po, lineItems) => {
   const result = [];
 
   for (const item of items) {
-    const customerName = item.CUSTOMER_NAME ?? '';
-    const orderCode = item.ORDER_CODE ?? '';
-    const key = `${customerName}|${orderCode}`; // gunakan separator unik
+    const customerName = item.CUSTOMER_NAME || '';
+    const orderCode = item.ORDER_CODE || '';
+    const key = `${customerName}|${orderCode}`;
 
     if (!seen.has(key)) {
       seen.add(key);
       result.push([
         customerName,
-        item.CUSTOMER_SEASON ?? '',
+        item.CUSTOMER_SEASON || '',
         orderCode,
-        item.ORDER_REF_PO_NO ?? '',
-        item.ORDER_DESCRIPTION ?? '',
-        '' 
+        item.ORDER_REF_PO_NO || '',
+        item.ORDER_DESCRIPTION || '',
+        item.ORDER_GARMENT_DELIVERY || ''
       ]);
     }
   }
@@ -231,7 +231,8 @@ export const printMpoToPdf = (po, lineItems) => {
     doc.line(100, 80, 145, 80);
     doc.line(170, 80, 205, 80);
 
-    
+    doc.setFont('helvetica', 'normal');
+    doc.text(po.APPROVE_BY, 170, 85);
     
 
     drawFooter(doc, doc.internal.getCurrentPageInfo().pageNumber);
@@ -306,7 +307,7 @@ export const printMpoToPdf = (po, lineItems) => {
   doc.setFont('helvetica', 'normal');
   doc.text(po.INVOICE_DETAIL?.INVOICE_COMPANY_NAME || '', 148, 58);
   doc.setFontSize(8);
-  doc.text(po.DELIVERY_UNIT || '', 148, 62, { maxWidth: 50 });
+  doc.text(po.INVOICE_DETAIL?.INVOICE_ADDRESS || '', 148, 62, { maxWidth: 50 });
 
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
