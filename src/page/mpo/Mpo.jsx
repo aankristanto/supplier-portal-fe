@@ -1,10 +1,13 @@
 import React, {useEffect, useState} from "react";
 import {AgGridReact} from "ag-grid-react";
 
-import {Button, Card, Col, Form, Row} from "react-bootstrap";
+import {FcAcceptDatabase, FcProcess} from "react-icons/fc";
+import {Button, Card, Col, Form, Modal, Row} from "react-bootstrap";
 import {toast} from "react-toastify";
 import axios from "../../config/axios";
 import moment from "moment";
+import Swal from "sweetalert2";
+import {printMpoToPdf} from "../../util/general";
 
 const PurchaseOrderList = () => {
   const [purchaseOrders, setPurchaseOrders] = useState([]);
@@ -12,6 +15,9 @@ const PurchaseOrderList = () => {
   const [orderPurchasingId, setOrderPurchasingId] = useState("");
   const [formData, setFormData] = useState({});
   const [purchaseOrderList, setPurchaseOrderList] = useState([]);
+
+  const [showRevModal, setShowRevModal] = useState(false);
+  const [formRev, setFormRev] = useState({});
 
   const columnDefs = [
     {headerName: "PO ID", field: "ID", width: 120},
@@ -40,8 +46,18 @@ const PurchaseOrderList = () => {
     {headerName: "Currency", field: "CURRENCY_CODE", width: 100},
     {headerName: "Tax %", field: "TAX_PERCENTAGE", width: 100},
     {headerName: "Surcharge", field: "SURCHARGE_AMOUNT", width: 120},
-    {headerName: "Created At", field: "CREATED_AT", width: 180, cellRenderer: (params) => moment(params.value).format('DD-MM-YYYY HH:mm')},
-    {headerName: "Updated At", field: "UPDATED_AT", width: 180, cellRenderer: (params) => moment(params.value).format('DD-MM-YYYY HH:mm')},
+    {
+      headerName: "Created At",
+      field: "CREATED_AT",
+      width: 180,
+      cellRenderer: (params) => params.value ? moment(params.value).format("DD-MM-YYYY HH:mm") : "",
+    },
+    {
+      headerName: "Updated At",
+      field: "UPDATED_AT",
+      width: 180,
+      cellRenderer: (params) => params.value ? moment(params.value).format("DD-MM-YYYY HH:mm") : "",
+    },
   ];
 
   const itemColumnDefs = [
@@ -51,8 +67,46 @@ const PurchaseOrderList = () => {
       field: "ITEM_CODE_DESCRIPTION",
       width: 200,
     },
+    {
+      headerName: "Supplier Item ID",
+      field: "ITEM_SUPPLIER.ITEM_ID",
+      width: 120,
+      editable: (params) =>
+        params.data?.ITEM_SUPPLIER
+          ? !params.data?.ITEM_SUPPLIER?.ITEM_ID
+          : false,
+      cellEditor: "agNumberCellEditor",
+      cellStyle: (params) => ({
+        backgroundColor: params.data?.ITEM_SUPPLIER
+          ? !params.data?.ITEM_SUPPLIER?.ITEM_ID
+            ? "#fff3cd"
+            : "white"
+          : "white",
+      }),
+    },
+    {
+      headerName: "Supplier Item Code",
+      field: "ITEM_SUPPLIER.CODE",
+      width: 120,
+      editable: (params) =>
+        params.data?.ITEM_SUPPLIER ? !params.data?.ITEM_SUPPLIER?.CODE : false,
+      cellEditor: "agNumberCellEditor",
+      cellStyle: (params) => ({
+        backgroundColor: params.data?.ITEM_SUPPLIER
+          ? !params.data?.ITEM_SUPPLIER?.CODE
+            ? "#fff3cd"
+            : "white"
+          : "white",
+      }),
+    },
     {headerName: "Item Type Code", field: "ITEM_TYPE_CODE", width: 120},
+    {headerName: "Item Type Description", field: "ITEM_TYPE_DESC", width: 120},
     {headerName: "Item Category", field: "ITEM_CATEGORY", width: 120},
+    {
+      headerName: "Item Category Description",
+      field: "ITEM_CATEGORY_DESC",
+      width: 120,
+    },
     {headerName: "Order Code", field: "ORDER_CODE", width: 120},
     {headerName: "Order Description", field: "ORDER_DESCRIPTION", width: 200},
     {headerName: "Color", field: "MATERIAL_ITEM_COLOR", width: 100},
@@ -117,6 +171,27 @@ const PurchaseOrderList = () => {
     }
   };
 
+  const onOpenRevDetail = async () => {
+    try {
+      const {data} = await axios.get("/purchase-order/rev", {
+        params: {
+          PURCHASE_ORDER_ID: formData.ID,
+          SEQUENCE: formData?.REV?.SEQUENCE || 0,
+        },
+      });
+      if (!data.data.length) {
+        toast.warn("No revision found");
+        return;
+      }
+      setShowRevModal(true);
+      setFormRev(data.data[0]);
+    } catch (err) {
+      toast.error(
+        err.response?.data?.message ?? "Failed to fetch delivery schedules"
+      );
+    }
+  };
+
   const handleRowDoubleClick = (id) => {
     fetchPurchaseOrderById(id);
     fetchPurchaseOrderItems(id);
@@ -130,8 +205,43 @@ const PurchaseOrderList = () => {
     fetchPurchaseOrders();
   };
 
+  const handleCellValueChanged = async (params) => {
+    const {data} = params;
+    if (!data.ITEM_SUPPLIER.ID) {
+      toast.error("Item Supplier id not found");
+      return;
+    }
+
+    try {
+      await axios.put(`/master-item-supplier/${data.ITEM_SUPPLIER.ID}`, {
+        ITEM_ID: data.ITEM_SUPPLIER.ITEM_ID,
+        CODE: data.ITEM_SUPPLIER.CODE,
+      });
+      toast.success("Supplier info updated!");
+      fetchPurchaseOrderItems(orderPurchasingId);
+    } catch (err) {
+      toast.error(err.response?.data?.message ?? "Failed to update supplier");
+      fetchPurchaseOrderItems(orderPurchasingId);
+    }
+  };
+
   const handleUpdateStatus = async (status) => {
     if (!orderPurchasingId) return;
+
+    const confirm = await Swal.fire({
+      title: `Are you sure you want to change the status to ${status}?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, Continue!",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      reverseButtons: true,
+    });
+
+    if (!confirm.isConfirmed) {
+      return false;
+    }
 
     try {
       await axios.put(`/purchase-order/main/${orderPurchasingId}`, {
@@ -140,6 +250,7 @@ const PurchaseOrderList = () => {
       toast.success(`PO status updated to ${status}`);
 
       fetchPurchaseOrderById(orderPurchasingId);
+      fetchPurchaseOrderItems(orderPurchasingId);
     } catch (err) {
       toast.error(
         err.response?.data?.message ?? `Failed to update status to ${status}`
@@ -154,9 +265,47 @@ const PurchaseOrderList = () => {
 
   return (
     <div>
+      <Modal
+        show={showRevModal}
+        onHide={() => setShowRevModal(false)}
+        size="md"
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Revision Detail</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Row>
+            <Col md={6}>
+              <Form.Group>
+                <Form.Label>Name</Form.Label>
+                <Form.Control size="sm" value={formRev?.NAME} disabled />
+              </Form.Group>
+            </Col>
+            <Col md={6}>
+              <Form.Group>
+                <Form.Label>SEQUENCE</Form.Label>
+                <Form.Control size="sm" value={formRev?.SEQUENCE} disabled />
+              </Form.Group>
+            </Col>
+            <Col md={12} className="mt-2">
+              <Form.Group>
+                <Form.Label>Description</Form.Label>
+                <Form.Control
+                  size="sm"
+                  as="textarea"
+                  rows={3}
+                  value={formRev?.DESCRIPTION}
+                  disabled
+                />
+              </Form.Group>
+            </Col>
+          </Row>
+        </Modal.Body>
+      </Modal>
+
       {!orderPurchasingId ? (
         <>
-          {/* Filter Status */}
           <Row className="mb-3">
             <Col md={3}>
               <Form.Group>
@@ -175,7 +324,6 @@ const PurchaseOrderList = () => {
             </Col>
           </Row>
 
-          {/* Tabel Utama */}
           <div
             className="ag-theme-alpine"
             style={{height: "95vh", width: "100%"}}
@@ -193,34 +341,45 @@ const PurchaseOrderList = () => {
         </>
       ) : (
         <div>
-          {/* Tombol Back & Update Status */}
           <div className="d-flex justify-content-between align-items-center mb-3">
-            <Button variant="secondary" size="sm" onClick={handleBack}>
-              Back to Table
-            </Button>
+            <div className="d-flex gap-2">
+              <Button variant="secondary" size="sm" onClick={handleBack}>
+                Back to Table
+              </Button>
+              <Button
+                className="d-flex align-items-center gap-2"
+                variant="success"
+                size="sm"
+                onClick={() => printMpoToPdf(formData, purchaseOrderList)}
+              >
+                Print to pdf
+              </Button>
+            </div>
             <div className="d-flex gap-2">
               {formData?.MPO_STATUS === "Open" && (
                 <Button
+                  className="d-flex align-items-center gap-2"
                   variant="success"
                   size="sm"
                   onClick={() => handleUpdateStatus("Accept")}
                 >
-                  Set to Accept
+                  <FcAcceptDatabase style={{width: 17, height: 17}} /> Set to
+                  Accept
                 </Button>
               )}
               {formData?.MPO_STATUS === "Accept" && (
                 <Button
+                  className="d-flex align-items-center gap-2"
                   variant="warning"
                   size="sm"
                   onClick={() => handleUpdateStatus("Process")}
                 >
-                  Set to Process
+                  <FcProcess style={{width: 17, height: 17}} /> Set to Process
                 </Button>
               )}
             </div>
           </div>
 
-          {/* Header PO */}
           <Card className="mb-3">
             <Card.Body>
               <Row>
@@ -236,7 +395,8 @@ const PurchaseOrderList = () => {
                     <Form.Control
                       size="sm"
                       value={formData?.REV_ID || 0}
-                      disabled
+                      readOnly
+                      onClick={onOpenRevDetail}
                     />
                   </Form.Group>
                 </Col>
@@ -264,7 +424,6 @@ const PurchaseOrderList = () => {
             </Card.Body>
           </Card>
 
-          {/* Detail Vendor */}
           <Row>
             <Col md={4}>
               <Card className="mb-3">
@@ -342,7 +501,6 @@ const PurchaseOrderList = () => {
               </Card>
             </Col>
 
-            {/* Detail Invoice */}
             <Col md={4}>
               <Card className="mb-3">
                 <Card.Header>
@@ -409,7 +567,6 @@ const PurchaseOrderList = () => {
               </Card>
             </Col>
 
-            {/* Detail Delivery (dari PurchaseOrderNoteModel) */}
             <Col md={4}>
               <Card className="mb-3">
                 <Card.Header>
@@ -459,10 +616,10 @@ const PurchaseOrderList = () => {
                     </Col>
                     <Col sm={6}>
                       <Form.Group className="mb-2">
-                        <Form.Label>Country ID</Form.Label>
+                        <Form.Label>Country Name</Form.Label>
                         <Form.Control
                           size="sm"
-                          value={formData.COUNTRY_ID || ""}
+                          value={formData.COUNTRY_NAME || ""}
                           disabled
                         />
                       </Form.Group>
@@ -503,7 +660,6 @@ const PurchaseOrderList = () => {
             </Col>
           </Row>
 
-          {/* Payment & Note */}
           <Card className="mb-3">
             <Card.Body>
               <Row>
@@ -517,7 +673,7 @@ const PurchaseOrderList = () => {
                     />
                   </Form.Group>
                 </Col>
-                <Col md={6}>
+                <Col md={3}>
                   <Form.Group>
                     <Form.Label>Payment Reference</Form.Label>
                     <Form.Control
@@ -529,10 +685,20 @@ const PurchaseOrderList = () => {
                 </Col>
                 <Col md={3}>
                   <Form.Group>
-                    <Form.Label>Surcharge</Form.Label>
+                    <Form.Label>Surcharge Amount</Form.Label>
                     <Form.Control
                       size="sm"
                       value={formData?.SURCHARGE_AMOUNT || "0.00"}
+                      disabled
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={3}>
+                  <Form.Group>
+                    <Form.Label>Tax Percentage</Form.Label>
+                    <Form.Control
+                      size="sm"
+                      value={`${formData?.TAX_PERCENTAGE} %` || "0%"}
                       disabled
                     />
                   </Form.Group>
@@ -552,7 +718,6 @@ const PurchaseOrderList = () => {
             </Card.Body>
           </Card>
 
-          {/* Items */}
           <Card>
             <Card.Header>
               <b>Items</b>
@@ -566,6 +731,7 @@ const PurchaseOrderList = () => {
                   rowData={purchaseOrderList}
                   columnDefs={itemColumnDefs}
                   enableCellTextSelection={true}
+                  onCellValueChanged={handleCellValueChanged}
                 />
               </div>
             </Card.Body>

@@ -90,16 +90,12 @@ const MasterItemSupplierPage = () => {
       });
 
       toast.success("Supplier updated successfully!");
-      
-      
       const updatedData = suppliers.map(item => 
         item.ID === data.ID ? { ...item, [field]: newValue } : item
       );
       setSuppliers(updatedData);
-      
     } catch (err) {
       toast.error(err.response?.data?.message ?? "Failed to update supplier");
-      
       const updatedData = suppliers.map(item => 
         item.ID === data.ID ? { ...item, [field]: oldValue } : item
       );

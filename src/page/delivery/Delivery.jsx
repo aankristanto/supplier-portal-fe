@@ -2,6 +2,7 @@ import React, {useEffect, useRef, useState} from "react";
 import {AgGridReact} from "ag-grid-react";
 import {Pie} from "react-chartjs-2";
 import {Chart as ChartJS, ArcElement, Tooltip, Legend} from "chart.js";
+import { Typeahead } from 'react-bootstrap-typeahead';
 import * as XLSX from "xlsx";
 
 import {
@@ -34,6 +35,9 @@ const DeliverySummaryList = () => {
   const [showBulkPackingModal, setShowBulkPackingModal] = useState(false);
   const [loadingBulk, setLoadingBulk] = useState(false);
   const bulkPackingGridRef = useRef(null);
+
+  const [countries, setCountries] = useState([]);
+  const [shippingTerms, setShippingTerms] = useState([]);
 
   const [schedules, setSchedules] = useState([]);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
@@ -278,19 +282,6 @@ const DeliverySummaryList = () => {
       }),
     },
     {
-      headerName: "Supplier Item Desc",
-      field: "SUPPLIER_DESCRIPTION",
-      width: 200,
-      editable: (params) => !params.data?.IS_SUPPLIER_DESCRIPTION,
-      cellStyle: (params) => ({
-        backgroundColor: !params.data?.IS_SUPPLIER_DESCRIPTION
-          ? "#fff3cd"
-          : params.data?.INPUT_QUANTITY
-          ? "#90EE90"
-          : "white",
-      }),
-    },
-    {
       headerName: "Dim ID",
       field: "MATERIAL_ITEM_DIM_ID",
       width: 100,
@@ -341,11 +332,9 @@ const DeliverySummaryList = () => {
       width: 100,
       cellStyle: (params) => ({
         fontWeight: "bold",
-        backgroundColor:
-          Number(params.data.PURCHASE_ORDER_QTY) ===
-          Number(params.data.QUANTITY_USED)
-            ? "#90EE90"
-            : "#FF3131",
+        backgroundColor: !Number(params.data.QUANTITY_AVAILABLE)
+          ? "#90EE90"
+          : "#0096FF",
       }),
     },
     {
@@ -378,7 +367,7 @@ const DeliverySummaryList = () => {
       },
       cellEditorParams: {
         min: 0,
-        max: (params) => params.data.QUANTITY_AVAILABLE || 0,
+        max: (params) => (Number(params.data.QUANTITY_AVAILABLE) + Number(params.data?.QUANTITY_USED)) || 0,
       },
       valueParser: (params) => {
         const val = parseFloat(params.newValue);
@@ -444,14 +433,14 @@ const DeliverySummaryList = () => {
       headerName: "Created Date",
       field: "CREATED_AT",
       width: 150,
-      cellRenderer: (params) => moment(params.value).format("DD-MM-YYYY HH:mm"),
+      cellRenderer: (params) => params.value ?  moment(params.value).format("DD-MM-YYYY HH:mm") : "",
     },
     {headerName: "Updated By", field: "UPDATED.INITIAL", width: 150},
     {
       headerName: "Updated Date",
       field: "UPDATED_AT",
       width: 150,
-      cellRenderer: (params) => moment(params.value).format("DD-MM-YYYY HH:mm"),
+      cellRenderer: (params) => params.value ? moment(params.value).format("DD-MM-YYYY HH:mm") : "",
     },
     {
       headerName: "Actions",
@@ -849,6 +838,42 @@ const DeliverySummaryList = () => {
       toast.warn("Please fill required fields: Packing Slip No, Invoice No");
       return false;
     }
+
+
+    if (isEditing) {
+        const {data: respData} = await axios.put(
+          `/v2/delivery/summary-list/${currentSchedule.ID}`,
+          {PURCHASE_ORDER_LIST: selectedPurchaseOrders.map((item) => item.ID)}
+        );
+        if (respData.data) {
+          const confirm = await Swal.fire({
+            title: "Change MPO?",
+            html: "An MPO is already active.<br><strong>If you proceed, the current MPO data will be permanently lost.</strong>",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Yes, Change MPO!",
+            cancelButtonText: "Cancel",
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#3085d6",
+            reverseButtons: true,
+          });
+          setLoading(false);
+          if (!confirm.isConfirmed) return;
+        }
+
+        const {data} = await axios.put(
+          `/v2/delivery/summary/${currentSchedule.ID}`,
+          {
+            ...currentSchedule,
+            PURCHASE_ORDER_LIST: selectedPurchaseOrders.map((item) => item.ID),
+          }
+        );
+        handleEditSchedule(data.data);
+        toast.success("Schedule updated successfully!");
+        return
+      }
+
+
     try {
       setLoading(true);
       const payload = {
@@ -934,7 +959,7 @@ const DeliverySummaryList = () => {
         return;
       }
 
-      if (numValue > available) {
+      if (numValue > (available + originalUsed)) {
         toast.warn(`Max available quantity is ${available}`);
 
         const revertedItems = notConsumedItems.map((item) =>
@@ -997,6 +1022,7 @@ const DeliverySummaryList = () => {
           item.ID === data.ID ? {...item, [field]: oldValue} : item
         );
         setNotConsumedItems(revertedItems);
+        fetchDeliverySummariesList(currentSchedule.ID);
       }
     }
   };
@@ -1015,7 +1041,6 @@ const DeliverySummaryList = () => {
       return;
     }
 
-    
     const invalidItems = selectedData.filter(
       (item) =>
         !item.QUANTITY_PER_BOX ||
@@ -1030,7 +1055,6 @@ const DeliverySummaryList = () => {
       return;
     }
 
-    
     let maxBoxes = 0;
     const itemConfigs = selectedData.map((item) => {
       const totalQty = Number(item.QUANTITY);
@@ -1047,17 +1071,15 @@ const DeliverySummaryList = () => {
 
     const payload = [];
 
-    
     for (let boxIndex = 0; boxIndex < maxBoxes; boxIndex++) {
       const boxSeq = boxIndex + 1;
 
-      
       for (const config of itemConfigs) {
         const {totalQty, qtyPerBox, packValue} = config;
         const qtyUsedSoFar = boxIndex * qtyPerBox;
         const remaining = totalQty - qtyUsedSoFar;
 
-        if (remaining <= 0) continue; 
+        if (remaining <= 0) continue;
 
         const qtyInThisBox = Math.min(qtyPerBox, remaining);
 
@@ -1069,8 +1091,8 @@ const DeliverySummaryList = () => {
           COLOR: config.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_COLOR,
           SIZE: config.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_SIZE,
           UOM: config.PURCHASE_ORDER_DETAIL.PURCHASE_UOM,
-          PACK: packValue, 
-          QTY: qtyInThisBox, 
+          PACK: packValue,
+          QTY: qtyInThisBox,
         });
       }
     }
@@ -1096,7 +1118,7 @@ const DeliverySummaryList = () => {
       toast.error(
         err.response?.data?.message ?? "Failed to create packing list"
       );
-    } 
+    }
   };
   const exportToExcel = () => {
     if (!deliveryScheduleList || deliveryScheduleList.length === 0) {
@@ -1159,7 +1181,7 @@ const DeliverySummaryList = () => {
             "MPO ID":
               detail.DELIVERY_SUMMARY_LIST?.PURCHASE_ORDER_DETAIL
                 ?.PURCHASE_ORDER_ID || "N/A",
-            "Supplier Item ID": detail.ITEM_ID || "", 
+            "Supplier Item ID": detail.ITEM_ID || "",
             "Dim ID":
               detail.DELIVERY_SUMMARY_LIST?.PURCHASE_ORDER_DETAIL
                 ?.MATERIAL_ITEM_DIM_ID || "N/A",
@@ -1177,7 +1199,6 @@ const DeliverySummaryList = () => {
           });
         });
       } else {
-        
         exportData.push({
           "Box Seq/No": box.SEQUENCE,
           "Barcode / QR Code Box": box.BARCODE_CODE || "",
@@ -1249,7 +1270,45 @@ const DeliverySummaryList = () => {
     fetchDeliverySummariesListUsage(currentSchedule?.ID);
   };
 
+  const selectedCountry = countries.find(country => country.COUNTRY_NAME === currentSchedule.PORT_OF_LOADING) ? [countries.find(country => country.COUNTRY_NAME === currentSchedule.PORT_OF_LOADING)] : [];
+
+const handleCountryChange = (selected) => {
+  const country = selected[0];
+  setCurrentSchedule({
+    ...currentSchedule,
+    PORT_OF_LOADING: country ? country.COUNTRY_NAME : '',
+  });
+};
+
+const handleShippingTermChange = (e) => {
+  setCurrentSchedule({
+    ...currentSchedule,
+    TERM_OF_DELIVERY: e.target.value,
+  });
+};
+
   useEffect(() => {
+    const fetchCountries = async () => {
+      try {
+        const res = await axios.get("/country-list");
+        setCountries(res.data.data || []);
+      } catch (error) {
+        console.error("Failed to load countries:", error);
+      }
+    };
+
+    const fetchShippingTerms = async () => {
+      try {
+        const res = await axios.get("/shipping-list");
+        setShippingTerms(res.data.data || []);
+      } catch (error) {
+        console.error("Failed to load shipping terms:", error);
+      }
+    };
+
+    fetchCountries();
+    fetchShippingTerms();
+
     fetchDeliverySummaries();
     fetchDeliveryMode();
   }, []);
@@ -1276,7 +1335,7 @@ const DeliverySummaryList = () => {
     if (currentSchedule?.ID) {
       fetchPurchaseOrdersListSell(currentSchedule?.ID);
     }
-     // eslint-disable-next-line
+    // eslint-disable-next-line
   }, [purchaseOrders]);
 
   const calculateSummary = () => {
@@ -1559,7 +1618,7 @@ const DeliverySummaryList = () => {
                   </Button>
                   <Button
                     variant="primary"
-                    onClick={handleSave}
+                    onClick={() => handleSave()}
                     disabled={loading}
                     size="sm"
                   >
@@ -1644,37 +1703,35 @@ const DeliverySummaryList = () => {
                   </Form.Group>
                 </Col>
                 <Col md={3}>
-                  <Form.Group>
-                    <Form.Label>Port of Loading</Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={currentSchedule.PORT_OF_LOADING}
-                      onChange={(e) =>
-                        setCurrentSchedule({
-                          ...currentSchedule,
-                          PORT_OF_LOADING: e.target.value,
-                        })
-                      }
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={3}>
-                  <Form.Group>
-                    <Form.Label>Term of Delivery</Form.Label>
-                    <Form.Control
-                      type="text"
-                      placeholder="e.g. FOB"
-                      value={currentSchedule.TERM_OF_DELIVERY}
-                      onChange={(e) =>
-                        setCurrentSchedule({
-                          ...currentSchedule,
-                          TERM_OF_DELIVERY: e.target.value,
-                        })
-                      }
-                    />
-                  </Form.Group>
-                </Col>
+  <Form.Group>
+    <Form.Label>Port of Loading</Form.Label>
+    <Typeahead
+      id="port-of-loading-typeahead"
+      labelKey="COUNTRY_NAME"
+      options={countries}
+      selected={selectedCountry}
+      onChange={handleCountryChange}
+      placeholder="Select country..."
+    />
+  </Form.Group>
+</Col>
 
+<Col md={3}>
+  <Form.Group>
+    <Form.Label>Term of Delivery</Form.Label>
+    <Form.Select
+      value={currentSchedule.TERM_OF_DELIVERY || ''}
+      onChange={handleShippingTermChange}
+    >
+      <option value="">Select Term...</option>
+      {shippingTerms.map((term) => (
+        <option key={term.SHIPPING_TERMS_ID} value={term.SHIPPING_TERMS_CODE}>
+          {term.SHIPPING_TERMS_CODE} — {term.SHIPPING_TERMS_DESC}
+        </option>
+      ))}
+    </Form.Select>
+  </Form.Group>
+</Col>
                 <Col md={4}>
                   <Form.Group>
                     <Form.Label>Packing Slip No *</Form.Label>
