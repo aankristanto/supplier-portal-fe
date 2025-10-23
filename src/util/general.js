@@ -232,7 +232,7 @@ export const printMpoToPdf = (po, lineItems) => {
     doc.line(170, 80, 205, 80);
 
     doc.setFont('helvetica', 'normal');
-    doc.text(po.APPROVE_BY, 170, 85);
+    doc.text(String(po?.APPROVE_BY), 170, 85);
     
 
     drawFooter(doc, doc.internal.getCurrentPageInfo().pageNumber);

@@ -146,9 +146,7 @@ const PurchaseOrderList = () => {
   const fetchPurchaseOrderById = async (id) => {
     try {
       const {data} = await axios.get(`/purchase-order/main/${id}`);
-      if (data.status) {
-        setFormData(data.data);
-      }
+      setFormData(data.data);
     } catch (err) {
       toast.error(
         err.response?.data?.message ?? "Failed to fetch purchase order detail"
