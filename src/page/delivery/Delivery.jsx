@@ -52,7 +52,7 @@ const DeliverySummaryList = () => {
   const [modalShow, setModalShow] = useState(false);
   const [modalData, setModalData] = useState(null);
   const [totalBoxToGenerate, setTotalBoxToGenerate] = useState(1);
-  const [defaultLotUom, setDefaultLotUom] = useState("");
+  const [defaultLotUom, setDefaultLotUom] = useState("BOX");
   const [defaultPack, setDefaultPack] = useState(0);
   const [defaultQty, setDefaultQty] = useState(0);
 
@@ -178,7 +178,14 @@ const DeliverySummaryList = () => {
       field: "LOT_OUM",
       width: 130,
       editable: true,
+      cellEditor: "agSelectCellEditor",
+      cellEditorParams: {
+        values: ["BOX", "ROLL"],
+      },
       cellStyle: {backgroundColor: "#fff3cd"},
+      valueGetter: (params) => {
+        return params.data?.LOT_OUM || "BOX";
+      },
     },
     {
       headerName: "Pack Per Box",
@@ -207,6 +214,28 @@ const DeliverySummaryList = () => {
       },
       valueGetter: (params) => {
         return params.data?.QUANTITY_PER_BOX ?? 0;
+      },
+    },
+    {
+      headerName: "Roll Width",
+      field: "ROLL_WIDTH",
+      width: 150,
+      editable: (params) => params.data?.LOT_OUM === "ROLL",
+      cellEditor: "agNumberCellEditor",
+      cellEditorParams: {
+        min: 0,
+        step: 0.01,
+      },
+      cellStyle: (params) => ({
+        backgroundColor:
+          params.data?.LOT_OUM === "ROLL" ? "#fff3cd" : "#f8f9fa",
+        color: params.data?.LOT_OUM === "ROLL" ? "black" : "#6c757d",
+      }),
+      valueFormatter: (params) => {
+        if (params.data?.LOT_OUM !== "ROLL") {
+          return "-";
+        }
+        return params.value ?? 0;
       },
     },
     {
@@ -634,6 +663,7 @@ const DeliverySummaryList = () => {
           COLOR: row["Color"],
           UOM: row["UOM"],
           LOT_OUM: row["Lot OUM"],
+          ROLL_WIDTH: row["Roll Width"],
           PACK: row["Pack"],
           QTY: parseFloat(row["PCS"]) || 0,
           BARCODE_CODE: row["Barcode / QR Code Box"],
@@ -850,8 +880,15 @@ const DeliverySummaryList = () => {
 
   const handleSave = async (listData) => {
     if (loading) return false;
-    if (!currentSchedule.PACKING_SLIP_NO || !currentSchedule.INVOICE_NO) {
-      toast.warn("Please fill required fields: Packing Slip No, Invoice No");
+    if (
+      !currentSchedule.PACKING_SLIP_NO ||
+      !currentSchedule.INVOICE_NO ||
+      !currentSchedule.ATA_DATE ||
+      !currentSchedule.ATD_DATE
+    ) {
+      toast.warn(
+        "Please fill required fields: Packing Slip No, Invoice No, ATA, ATD"
+      );
       return false;
     }
 
@@ -1096,7 +1133,8 @@ const DeliverySummaryList = () => {
         const qtyInThisBox = Math.min(config.qtyPerBox, config.remainingQty);
         boxItems.push({
           BOX_SEQ: boxSeq,
-          LOT_OUM:config.LOT_OUM,
+          LOT_OUM: config.LOT_OUM,
+          ROLL_WIDTH: config.ROLL_WIDTH,
           MPO_ID: config.PURCHASE_ORDER_DETAIL.PURCHASE_ORDER_ID,
           ITEM_ID: config.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID,
           DIM_ID: config.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_DIM_ID,
@@ -1160,8 +1198,6 @@ const DeliverySummaryList = () => {
     for (let i = 0; i < deliveryScheduleList.length; i++) {
       const item = deliveryScheduleList[i];
 
-      
-
       if (!item.PURCHASE_ORDER_DETAIL?.MASTER_ITEM_SUPPLIER?.ITEM_ID) {
         toast.error("Supplier item ID must all be required");
         return;
@@ -1197,21 +1233,21 @@ const DeliverySummaryList = () => {
   const exportToExcelPackingList = () => {
     const exportData = [];
 
-
     if (!packingList.length) {
       exportData.push({
-          "Box Seq/No": "",
-          "Barcode / QR Code Box": "",
-          "Lot OUM": "",
-          "MPO ID": "",
-          "Supplier Item ID": "",
-          "Dim ID": "",
-          Color: "",
-          Size: "",
-          OUM: "",
-          Pack: "",
-          PCS: "",
-        });
+        "Box Seq/No": "",
+        "Barcode / QR Code Box": "",
+        "Lot OUM": "",
+        "Roll Width": "",
+        "MPO ID": "",
+        "Supplier Item ID": "",
+        "Dim ID": "",
+        Color: "",
+        Size: "",
+        OUM: "",
+        Pack: "",
+        PCS: "",
+      });
     } else {
       packingList.forEach((box) => {
         if (box.PACKING_LIST_DETAILS && box.PACKING_LIST_DETAILS.length > 0) {
@@ -1224,6 +1260,7 @@ const DeliverySummaryList = () => {
                   ?.PURCHASE_ORDER_ID || "N/A",
               "Supplier Item ID": detail.ITEM.ITEM_ID || "",
               "Lot OUM": box.LOT_OUM,
+              "Roll Width": box.ROLL_WIDTH,
               "Dim ID":
                 detail.DELIVERY_SUMMARY_LIST?.PURCHASE_ORDER_DETAIL
                   ?.MATERIAL_ITEM_DIM_ID || "N/A",
@@ -1245,6 +1282,7 @@ const DeliverySummaryList = () => {
             "Box Seq/No": box.SEQUENCE,
             "Barcode / QR Code Box": box.BARCODE_CODE || "",
             "Lot OUM": box.LOT_OUM,
+            "Roll Width": box.ROLL_WIDTH,
             "MPO ID": "",
             "Supplier Item ID": "",
             "Dim ID": "",
@@ -1608,12 +1646,13 @@ const DeliverySummaryList = () => {
                 <Form.Label>
                   <strong>Default Lot OUM</strong>
                 </Form.Label>
-                <Form.Control
-                  type="text"
+                <Form.Select
                   value={defaultLotUom}
                   onChange={(e) => setDefaultLotUom(e.target.value)}
-                  placeholder="e.g., ROL, BOX, etc."
-                />
+                >
+                  <option value="BOX">BOX</option>
+                  <option value="ROLL">ROLL</option>
+                </Form.Select>
               </Form.Group>
             </Col>
             <Col sm="6">
@@ -1625,7 +1664,7 @@ const DeliverySummaryList = () => {
                   type="number"
                   min="0"
                   value={defaultPack}
-                  onChange={(e) => setDefaultPack(e.target.value) }
+                  onChange={(e) => setDefaultPack(e.target.value)}
                   placeholder="e.g., 2"
                 />
               </Form.Group>
@@ -1639,7 +1678,7 @@ const DeliverySummaryList = () => {
                   type="number"
                   min="0"
                   value={defaultQty}
-                  onChange={(e) =>  setDefaultQty(e.target.value) }
+                  onChange={(e) => setDefaultQty(e.target.value)}
                   placeholder="e.g., 10"
                 />
               </Form.Group>
@@ -1658,6 +1697,7 @@ const DeliverySummaryList = () => {
                 LOT_OUM: item.LOT_OUM || defaultLotUom,
                 PACK_PER_BOX: item.PACK_PER_BOX || defaultPack,
                 QUANTITY_PER_BOX: item.QUANTITY_PER_BOX || defaultQty,
+                ROLL_WIDTH_DECIMAL: item.ROLL_WIDTH_DECIMAL || 0,
               }))}
               columnDefs={matrixPackingList}
               defaultColDef={defaultColDef}
@@ -2058,17 +2098,20 @@ const DeliverySummaryList = () => {
                                         Barcode / QR CODE:{" "}
                                         {box.BARCODE_CODE || "-"}
                                       </Card.Subtitle>
+                                      {box.LOT_OUM === "ROLL" && (
+                                        <Card.Subtitle className="mb-2">
+                                          Roll Width: <span style={{color: 'red', fontWeight: 'bold'}}>{box.ROLL_WIDTH || "-"}</span>
+                                        </Card.Subtitle>
+                                      )}
                                       <Row style={{width: "350px"}}>
                                         <Col sm="6">
                                           <Card.Subtitle className="mb-2 text-muted">
-                                            Total Pack:{" "}
-                                            {box.TOTAL_PACK}
+                                            Total Pack: {box.TOTAL_PACK}
                                           </Card.Subtitle>
                                         </Col>
                                         <Col sm="6">
                                           <Card.Subtitle className="mb-2 text-muted">
-                                            Total Quantity:{" "}
-                                            {box.TOTAL_QUANTITY}
+                                            Total Quantity: {box.TOTAL_QUANTITY}
                                           </Card.Subtitle>
                                         </Col>
                                       </Row>
