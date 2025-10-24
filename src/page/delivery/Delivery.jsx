@@ -1328,7 +1328,7 @@ const DeliverySummaryList = () => {
           title: "Approve Delivery?",
           icon: "warning",
           showCancelButton: true,
-          confirmButtonText: "Yes, Change MPO!",
+          confirmButtonText: "Yes, Approve Delivery!",
           cancelButtonText: "Cancel",
           confirmButtonColor: "#d33",
           cancelButtonColor: "#3085d6",
@@ -1340,7 +1340,7 @@ const DeliverySummaryList = () => {
           return false;
         }
     try {
-      const {data} = await axios.put(`/v2/delivery/summary/${currentSchedule?.ID}`, {
+      const {data} = await axios.patch(`/v2/delivery/summary/${currentSchedule?.ID}`, {
         IS_APPROVE: true
       })
       setCurrentSchedule(data.data)
@@ -1402,7 +1402,8 @@ const DeliverySummaryList = () => {
     const country = selected[0];
     setCurrentSchedule({
       ...currentSchedule,
-      PORT_OF_LOADING: country ? country.COUNTRY_NAME : "",
+      PORT_OF_LOADING: country ? country.COUNTRY_NAME: "",
+      PORT_OF_LOADING_CODE: country ? country.COUNTRY_CODE  : "",
     });
   };
 
@@ -2096,7 +2097,7 @@ const DeliverySummaryList = () => {
                     <h5>Box List</h5>
                     <Row>
                       <Col md="2"></Col>
-                      <Col md="2">
+                      <Col md={currentSchedule.IS_APPROVE ? "5": "2"}>
                         <Button
                           variant="danger"
                           onClick={handleGenerateLabel}
@@ -2105,12 +2106,15 @@ const DeliverySummaryList = () => {
                           Generate Packing Labels
                         </Button>
                       </Col>
-                      <Col md="2">
+                      <Col md={currentSchedule.IS_APPROVE ? "5": "2"}>
                         <Button size="sm" onClick={exportToExcelPackingList}>
                           Export Template Excel
                         </Button>
                       </Col>
-                      <Col md="2">
+
+                      {
+                        !currentSchedule.IS_APPROVE && 
+                        <Col md="2">
                         <Button
                           variant="warning"
                           size="sm"
@@ -2120,6 +2124,10 @@ const DeliverySummaryList = () => {
                           Create Bulk Packing List
                         </Button>
                       </Col>
+                      }
+                      {
+                        !currentSchedule.IS_APPROVE &&
+                      
                       <Col md="4">
                         <Button
                           size="sm"
@@ -2140,6 +2148,7 @@ const DeliverySummaryList = () => {
                           )}
                         </Button>
                       </Col>
+                      }
                     </Row>
                   </div>
                 </Card.Header>
@@ -2199,12 +2208,16 @@ const DeliverySummaryList = () => {
                                         Watch
                                       </button>
 
+                                      {
+                                        !currentSchedule.IS_APPROVE && 
+                                      
                                       <button
                                         className="btn btn-sm btn-outline-danger"
                                         onClick={() => handleDelete(box.ID)}
                                       >
                                         Delete
                                       </button>
+                                      }
                                     </div>
                                   </div>
 
