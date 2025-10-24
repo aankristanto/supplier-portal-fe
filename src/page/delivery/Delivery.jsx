@@ -186,10 +186,7 @@ const DeliverySummaryList = () => {
       cellEditorParams: {
         values: ["BOX", "ROLL"],
       },
-      cellStyle: {backgroundColor: "#fff3cd"},
-      valueGetter: (params) => {
-        return params.data?.LOT_OUM || "BOX";
-      },
+      cellStyle: {backgroundColor: "#fff3cd"}
     },
     {
       headerName: "Pack Per Box",
@@ -1137,7 +1134,7 @@ const DeliverySummaryList = () => {
         const qtyInThisBox = Math.min(config.qtyPerBox, config.remainingQty);
         boxItems.push({
           BOX_SEQ: boxSeq,
-          LOT_OUM: config.LOT_OUM,
+          LOT_OUM: config.LOT_OUM || "BOX",
           ROLL_WIDTH: config.ROLL_WIDTH,
           MPO_ID: config.PURCHASE_ORDER_DETAIL.PURCHASE_ORDER_ID,
           ITEM_ID: config.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID,
@@ -1326,6 +1323,33 @@ const DeliverySummaryList = () => {
     setActiveTab(e);
   };
 
+  const handleApprove = async () => {
+    const confirm = await Swal.fire({
+          title: "Approve Delivery?",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "Yes, Change MPO!",
+          cancelButtonText: "Cancel",
+          confirmButtonColor: "#d33",
+          cancelButtonColor: "#3085d6",
+          reverseButtons: true,
+        });
+
+        if (!confirm.isConfirmed) {
+          setLoading(false);
+          return false;
+        }
+    try {
+      const {data} = await axios.put(`/v2/delivery/summary/${currentSchedule?.ID}`, {
+        IS_APPROVE: true
+      })
+      setCurrentSchedule(data.data)
+    } catch (err) {
+      toast.error(err?.response?.data?.message ?? "Failed to approve  status")
+    }
+  }
+
+
   const resetForm = () => {
     setCurrentSchedule({
       ID: null,
@@ -1359,7 +1383,7 @@ const DeliverySummaryList = () => {
   const handleOnClosePaclingList = () => {
     setShowBulkPackingModal(false);
     setTotalBoxToGenerate(1);
-    setDefaultLotUom("");
+    setDefaultLotUom("BOX");
     setDefaultPack("");
     setDefaultQty("");
   };
@@ -1384,7 +1408,7 @@ const DeliverySummaryList = () => {
 
   const handleGenerateLabel = async () => {
     try {
-      const {data} = await axios.get(`v2/delivery/summary-list/${currentSchedule?.ID}`)  
+      const {data} = await axios.get(`/v2/delivery/summary-list/${currentSchedule?.ID}`)  
       generatePackingLabelPDF(data.data[0]);
     } catch (err) {
       toast.error(err?.response?.data?.message ?? "Failed to fetch print data")
@@ -1785,6 +1809,18 @@ const DeliverySummaryList = () => {
                     : "Create Delivery Schedule"}
                 </h5>
                 <div>
+                  {
+                    deliveryScheduleList.reduce((sum, row) => sum + Number(row.QUANTITY), 0) === packingList.reduce((sum, row) => sum + Number(row.TOTAL_QUANTITY), 0) && !currentSchedule.IS_APPROVE &&
+                    <Button
+                    className="mx-3"
+                    variant="success"
+                    size="sm"
+                    onClick={handleApprove}
+                  >
+                    Approve Status
+                  </Button>
+                  }
+                
                   <Button
                     className="mx-3"
                     variant="secondary"
