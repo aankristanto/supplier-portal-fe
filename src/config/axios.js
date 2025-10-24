@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://localhost:58111/api',
+    baseURL: 'https://api-supplier-portal.sumbiri.com/api',
 });
 
 var navigateTo;

@@ -23,7 +23,11 @@ import {GrTrash, GrAdd} from "react-icons/gr";
 import {toast} from "react-toastify";
 import axios from "../../config/axios";
 import Swal from "sweetalert2";
-import {colorListSummary, defaultColDef} from "../../util/general";
+import {
+  colorListSummary,
+  defaultColDef,
+  generatePackingLabelPDF,
+} from "../../util/general";
 import "./delivery.css";
 import moment from "moment/moment";
 
@@ -488,7 +492,7 @@ const DeliverySummaryList = () => {
     },
     {
       headerName: "Actions",
-      width: 120,
+      width: 90,
       pinned: "right",
       cellRenderer: (params) => (
         <div className="d-flex gap-2">
@@ -1378,6 +1382,17 @@ const DeliverySummaryList = () => {
     });
   };
 
+  const handleGenerateLabel = async () => {
+    try {
+      const {data} = await axios.get(`v2/delivery/summary-list/${currentSchedule?.ID}`)  
+      generatePackingLabelPDF(data.data[0]);
+    } catch (err) {
+      toast.error(err?.response?.data?.message ?? "Failed to fetch print data")
+    }
+
+    
+  };
+
   const handleShippingTermChange = (e) => {
     setCurrentSchedule({
       ...currentSchedule,
@@ -2043,37 +2058,53 @@ const DeliverySummaryList = () => {
                 <Card.Header>
                   <div className="d-flex justify-content-between align-items-center my-1">
                     <h5>Box List</h5>
-                    <div className="d-flex gap-3 align-items-center">
-                      <Button size="sm" onClick={exportToExcelPackingList}>
-                        Export Template Excel
-                      </Button>
-                      <Button
-                        variant="warning"
-                        size="sm"
-                        onClick={openModalCreateBulk}
-                        disabled={!currentSchedule?.ID}
-                      >
-                        Create Bulk Packing List
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="success"
-                        disabled={loading2}
-                        onClick={() =>
-                          document.getElementById("fileInput").click()
-                        }
-                      >
-                        {loading2 ? (
-                          <Spinner
-                            animation="border"
-                            variant="warning"
-                            size="sm"
-                          />
-                        ) : (
-                          "Import Excel (Replace all And Bulk Create)"
-                        )}
-                      </Button>
-                    </div>
+                    <Row>
+                      <Col md="2"></Col>
+                      <Col md="2">
+                        <Button
+                          variant="danger"
+                          onClick={handleGenerateLabel}
+                          size="sm"
+                        >
+                          Generate Packing Labels
+                        </Button>
+                      </Col>
+                      <Col md="2">
+                        <Button size="sm" onClick={exportToExcelPackingList}>
+                          Export Template Excel
+                        </Button>
+                      </Col>
+                      <Col md="2">
+                        <Button
+                          variant="warning"
+                          size="sm"
+                          onClick={openModalCreateBulk}
+                          disabled={!currentSchedule?.ID}
+                        >
+                          Create Bulk Packing List
+                        </Button>
+                      </Col>
+                      <Col md="4">
+                        <Button
+                          size="sm"
+                          variant="success"
+                          disabled={loading2}
+                          onClick={() =>
+                            document.getElementById("fileInput").click()
+                          }
+                        >
+                          {loading2 ? (
+                            <Spinner
+                              animation="border"
+                              variant="warning"
+                              size="sm"
+                            />
+                          ) : (
+                            "Import Excel (Replace all And Bulk Create)"
+                          )}
+                        </Button>
+                      </Col>
+                    </Row>
                   </div>
                 </Card.Header>
                 <Card.Body>
@@ -2100,10 +2131,18 @@ const DeliverySummaryList = () => {
                                       </Card.Subtitle>
                                       {box.LOT_OUM === "ROLL" && (
                                         <Card.Subtitle className="mb-2">
-                                          Roll Width: <span style={{color: 'red', fontWeight: 'bold'}}>{box.ROLL_WIDTH || "-"}</span>
+                                          Roll Width:{" "}
+                                          <span
+                                            style={{
+                                              color: "red",
+                                              fontWeight: "bold",
+                                            }}
+                                          >
+                                            {box.ROLL_WIDTH || "-"}
+                                          </span>
                                         </Card.Subtitle>
                                       )}
-                                      <Row style={{width: "350px"}}>
+                                      <Row style={{ width: "350px" }} >
                                         <Col sm="6">
                                           <Card.Subtitle className="mb-2 text-muted">
                                             Total Pack: {box.TOTAL_PACK}
@@ -2179,7 +2218,8 @@ const DeliverySummaryList = () => {
                             <div
                               style={{
                                 height: "250px",
-                                width: "250px",
+                                maxWidth: "250px",
+                                width: "100%",
                                 margin: "0 auto",
                               }}
                             >

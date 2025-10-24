@@ -1,6 +1,7 @@
 import moment from "moment";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import JsBarcode from "jsbarcode";
 
 export const defaultColDef = {
   sortable: true,
@@ -44,7 +45,7 @@ export function numberToWords(num) {
     else return belowTwenty[Math.floor(n / 100)] + " Hundred " + helper(n % 100);
   }
 
-  
+
   let [intPart, decPart] = num.toString().split(".");
   intPart = parseInt(intPart, 10);
 
@@ -61,7 +62,7 @@ export function numberToWords(num) {
 
   if (!result) result = "Zero";
 
-  
+
   if (decPart) {
     let decimalWords = decPart
       .split("")
@@ -77,38 +78,38 @@ export const printMpoToPdf = (po, lineItems) => {
   const doc = new jsPDF('p', 'mm', 'a4');
   const printDate = `${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
 
-  
+
   function drawWatermark(doc) {
-    // watermark
+
   }
 
-  
+
   function convertToOrderRows(items) {
     const seen = new Set();
-  const result = [];
+    const result = [];
 
-  for (const item of items) {
-    const customerName = item.CUSTOMER_NAME || '';
-    const orderCode = item.ORDER_CODE || '';
-    const key = `${customerName}|${orderCode}`;
+    for (const item of items) {
+      const customerName = item.CUSTOMER_NAME || '';
+      const orderCode = item.ORDER_CODE || '';
+      const key = `${customerName}|${orderCode}`;
 
-    if (!seen.has(key)) {
-      seen.add(key);
-      result.push([
-        customerName,
-        item.CUSTOMER_SEASON || '',
-        orderCode,
-        item.ORDER_REF_PO_NO || '',
-        item.ORDER_DESCRIPTION || '',
-        item.ORDER_GARMENT_DELIVERY || ''
-      ]);
+      if (!seen.has(key)) {
+        seen.add(key);
+        result.push([
+          customerName,
+          item.CUSTOMER_SEASON || '',
+          orderCode,
+          item.ORDER_REF_PO_NO || '',
+          item.ORDER_DESCRIPTION || '',
+          item.ORDER_GARMENT_DELIVERY || ''
+        ]);
+      }
     }
+
+    return result;
   }
 
-  return result;
-  }
 
-  
   function convertToMaterialRows(items) {
     return items.map((item, index) => [
       index + 1,
@@ -124,7 +125,7 @@ export const printMpoToPdf = (po, lineItems) => {
     ]);
   }
 
-  
+
   function drawHeaderCompact(doc) {
     drawWatermark(doc);
 
@@ -149,14 +150,14 @@ export const printMpoToPdf = (po, lineItems) => {
     doc.text(`: ${po.MPO_STATUS || 'Open'}`, 135, 25);
   }
 
-  
+
   function drawHeaderFull(doc) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
     doc.text('PT. SUMBER BINTANG REJEKI', 5, 10);
   }
 
-  
+
   function drawFooter(doc, pageNumber) {
     const footerY = 285;
     doc.setFontSize(8);
@@ -174,7 +175,7 @@ export const printMpoToPdf = (po, lineItems) => {
     doc.text(`Page ${pageNumber}`, 190, footerY + 10);
   }
 
-  
+
   function drawTotals(doc, y, total) {
     const surcharge = parseFloat(po.SURCHARGE_AMOUNT) || 0;
     const taxPercent = parseFloat(po.TAX_PERCENTAGE) || 0;
@@ -207,7 +208,7 @@ export const printMpoToPdf = (po, lineItems) => {
     doc.text(`(${po.CURRENCY_CODE}) ${parseFloat(grandTotal).toFixed(2)}`, 175, y + 22);
   }
 
-  
+
   function drawSignaturePage(doc) {
     doc.addPage();
     drawHeaderCompact(doc);
@@ -233,16 +234,16 @@ export const printMpoToPdf = (po, lineItems) => {
 
     doc.setFont('helvetica', 'normal');
     doc.text(String(po?.APPROVE_BY), 170, 85);
-    
+
 
     drawFooter(doc, doc.internal.getCurrentPageInfo().pageNumber);
   }
 
-  
+
   drawHeaderFull(doc);
   drawHeaderCompact(doc);
 
-  
+
   doc.setFont('helvetica', 'bold');
   doc.setFillColor(50, 50, 50);
   doc.rect(5, 30, 70, 8, 'F');
@@ -263,7 +264,7 @@ export const printMpoToPdf = (po, lineItems) => {
   doc.setFillColor(50, 50, 50);
   doc.rect(73, 30, 0.5, 50, 'F');
 
-  
+
   doc.setFont('helvetica', 'bold');
   doc.setFillColor(50, 50, 50);
   doc.rect(75, 30, 70, 8, 'F');
@@ -282,7 +283,7 @@ export const printMpoToPdf = (po, lineItems) => {
   doc.setFillColor(50, 50, 50);
   doc.rect(145, 30, 60, 0.5, 'F');
 
-  
+
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
   doc.text('Delivery Date', 148, 35);
@@ -323,7 +324,7 @@ export const printMpoToPdf = (po, lineItems) => {
   doc.text('Terms of Payment :', 138, 85);
   doc.text(po.PAYMENT_TERM_NAME || '', 173, 85);
 
-  
+
   const orderColumns = ['Customer', 'Season', 'Order Code', 'Order PO Ref. No', 'Order PO Style Ref.', 'Garment Delivery'];
   autoTable(doc, {
     startY: 90,
@@ -344,7 +345,7 @@ export const printMpoToPdf = (po, lineItems) => {
     styles: { font: 'helvetica' }
   });
 
-  
+
   const materialColumns = ['#', 'Item', 'Description', 'Color', 'Size', 'Serial No', 'UOM', 'PO Qty', 'Unit Cost', 'Amount'];
   const materialRows = convertToMaterialRows(lineItems);
   let totalAmount = materialRows.reduce((sum, row) => sum + parseFloat(row[9] || 0), 0);
@@ -377,7 +378,6 @@ export const printMpoToPdf = (po, lineItems) => {
     }
   });
 
-  
   const finalY = doc.lastAutoTable.finalY + 10;
   if (finalY > 270) {
     doc.addPage();
@@ -388,8 +388,65 @@ export const printMpoToPdf = (po, lineItems) => {
   }
 
   drawSignaturePage(doc);
-
-  
   const fileName = `purchase-order_${po.ID || 'MPO'}.pdf`;
   doc.save(fileName);
+};
+
+export const generatePackingLabelPDF = (packingListData) => {
+  const doc = new jsPDF({
+    orientation: 'landscape', 
+    unit: 'mm',
+    format: [80, 50], 
+  });
+
+  const { COMPANY, PACKING_LIST } = packingListData;
+
+
+  PACKING_LIST.forEach((box, index) => {
+    if (index > 0) {
+      doc.addPage([80, 50], 'landscape');
+    }
+
+    const { SEQUENCE, BARCODE_CODE, BARCODE_SYSTEM, PACKING_LIST_DETAILS } = box;
+
+    const mpoIds = [...new Set(PACKING_LIST_DETAILS.map(detail => detail.PURCHASE_ORDER_ID))].join(', ');
+    const itemIds = [...new Set(PACKING_LIST_DETAILS.map(detail => detail.ITEM_ID))].join(', ');
+    const barcodeValue = BARCODE_CODE || BARCODE_SYSTEM;
+    
+    const canvas = document.createElement('canvas');
+    JsBarcode(canvas, barcodeValue, {
+      format: "CODE128",
+      width: 1.2, 
+      height: 15, 
+      displayValue: false, 
+      margin: 0,
+      marginTop: 0,
+      marginBottom: 0,
+      marginLeft: 5,
+      marginRight: 5,
+    });
+
+    
+    const barcodeImgData = canvas.toDataURL('image/png');
+    doc.addImage(barcodeImgData, 'PNG', 5, 5, 70, 15); 
+    doc.setFontSize(7);
+    doc.setFont('Helvetica', 'bold');
+    doc.text(barcodeValue, 40, 23, { align: 'center', maxWidth: 70 });
+
+
+    doc.setFontSize(6);
+    doc.setFont('Helvetica', 'normal');
+    const boxTotalQty = PACKING_LIST_DETAILS.reduce((sum, detail) => sum + (detail.QUANTITY || 0), 0);
+    doc.text(`Box Sequence: ${SEQUENCE}`, 20, 27);
+    doc.text(`Total QTY: ${boxTotalQty}`, 46, 27);
+
+    doc.text(`MPOs: ${mpoIds || '-'}`, 8, 33, {maxWidth: 70});
+    doc.text(`Item IDs: ${itemIds || '-'}`, 8, 38, {maxWidth: 70});
+
+    doc.setFontSize(8);
+    doc.setFont('Helvetica', 'bold');
+    doc.text(COMPANY?.NAME || 'N/A', 40, 46, {align: 'center', maxWidth: 70});
+  });
+
+  doc.save(`Packing_Label_${packingListData.INVOICE_NO || 'UNKNOWN'}.pdf`);
 };

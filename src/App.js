@@ -23,6 +23,9 @@ const AppLayout = () => {
 
   return (
     <>
+    <div id="barcode-container" style={{display: "none"}}>
+        <div id="barcode"></div>
+      </div>
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route element={<MainLayout />}>
@@ -37,6 +40,7 @@ const AppLayout = () => {
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
+    
      <ToastContainer
         position="top-right"
         autoClose={4000}
