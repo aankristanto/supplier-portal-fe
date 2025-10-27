@@ -253,7 +253,7 @@ const DeliverySummaryList = () => {
         if (params.data?.LOT_OUM !== "ROLL") {
           return "-";
         }
-        return params.value ?? 0;
+        return params.value;
       },
     },
     {
