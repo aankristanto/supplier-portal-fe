@@ -314,7 +314,7 @@ export const printMpoToPdf = (po, lineItems) => {
   doc.setFont('helvetica', 'bold');
   doc.text('Port of Loading :', 5, 85);
   doc.setFont('helvetica', 'normal');
-  doc.text(po.COUNTRY_NAME || '', 35, 85);
+  doc.text(po.COUNTRY_NAME || '', 35, 85, {maxWidth: 40});
 
   doc.setFont('helvetica', 'bold');
   doc.text('Terms of Delivery :', 78, 85);

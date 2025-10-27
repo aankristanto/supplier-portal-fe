@@ -219,7 +219,7 @@ const DeliverySummaryList = () => {
     },
     {
       headerName: "Roll Width",
-      field: "ROLL_WIDTH",
+      field: "VENDOR_ROLL_WIDTH",
       width: 150,
       editable: (params) => params.data?.LOT_OUM === "ROLL",
       cellEditor: "agNumberCellEditor",
@@ -227,6 +227,23 @@ const DeliverySummaryList = () => {
         min: 0,
         step: 0.01,
       },
+      cellStyle: (params) => ({
+        backgroundColor:
+          params.data?.LOT_OUM === "ROLL" ? "#fff3cd" : "#f8f9fa",
+        color: params.data?.LOT_OUM === "ROLL" ? "black" : "#6c757d",
+      }),
+      valueFormatter: (params) => {
+        if (params.data?.LOT_OUM !== "ROLL") {
+          return "-";
+        }
+        return params.value ?? 0;
+      },
+    },
+    {
+      headerName: "Roll Width OUM",
+      field: "ROLL_WIDTH_OUM",
+      width: 150,
+      editable: (params) => params.data?.LOT_OUM === "ROLL",
       cellStyle: (params) => ({
         backgroundColor:
           params.data?.LOT_OUM === "ROLL" ? "#fff3cd" : "#f8f9fa",
@@ -532,6 +549,7 @@ const DeliverySummaryList = () => {
           PACK_PER_BOX: 0,
         }))
       );
+      setShowBulkPackingModal(true);
     } catch (err) {
       toast.error(
         err.response?.data?.message ?? "Failed to fetch delivery schedules"
@@ -664,7 +682,8 @@ const DeliverySummaryList = () => {
           COLOR: row["Color"],
           UOM: row["UOM"],
           LOT_OUM: row["Lot OUM"],
-          ROLL_WIDTH: row["Roll Width"],
+          VENDOR_ROLL_WIDTH: row["Roll Width"],
+          ROLL_WIDTH_OUM: row["Roll Width OUM"],
           PACK: row["Pack"],
           QTY: parseFloat(row["PCS"]) || 0,
           BARCODE_CODE: row["Barcode / QR Code Box"],
@@ -1080,113 +1099,123 @@ const DeliverySummaryList = () => {
   };
 
   const handleBulkPackingSubmit = async () => {
-    if (!currentSchedule?.ID) {
-      toast.warn("Schedule ID is missing");
-      return;
-    }
+  if (!currentSchedule?.ID) {
+    toast.warn("Schedule ID is missing");
+    return;
+  }
 
-    const selectedNodes = bulkPackingGridRef.current.api.getSelectedNodes();
-    const selectedData = selectedNodes.map((node) => node.data);
+  const selectedNodes = bulkPackingGridRef.current.api.getSelectedNodes();
+  const selectedData = selectedNodes.map((node) => node.data);
 
-    if (selectedData.length === 0) {
-      toast.warn("Please select at least one item");
-      return;
-    }
+  if (selectedData.length === 0) {
+    toast.warn("Please select at least one item");
+    return;
+  }
 
-    const invalidItems = selectedData.filter(
-      (item) =>
-        !item.QUANTITY_PER_BOX ||
-        item.QUANTITY_PER_BOX <= 0 ||
-        !item.PACK_PER_BOX ||
-        item.PACK_PER_BOX < 0
+  const invalidItems = selectedData.filter(
+    (item) =>
+      !item.QUANTITY_PER_BOX ||
+      item.QUANTITY_PER_BOX <= 0 ||
+      !item.PACK_PER_BOX ||
+      item.PACK_PER_BOX < 0
+  );
+  if (invalidItems.length > 0) {
+    toast.warn(
+      "Please enter valid Pack Per Box and Qty per Box for all selected items"
     );
-    if (invalidItems.length > 0) {
-      toast.warn(
-        "Please enter valid Pack Per Box and Qty per Box for all selected items"
-      );
-      return;
+    return;
+  }
+
+  // Kelompokkan item berdasarkan kombinasi ITEM_ID, DIM_ID, dan MPO_ID
+  const groupedConfigs = {};
+  selectedData.forEach((item) => {
+    const uniqueKey = `${item.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID}_${item.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_DIM_ID}_${item.PURCHASE_ORDER_DETAIL.PURCHASE_ORDER_ID}`;
+
+    if (!groupedConfigs[uniqueKey]) {
+      groupedConfigs[uniqueKey] = {
+        ...item,
+        totalQty: Number(item.QUANTITY),
+        qtyPerBox: Number(item.QUANTITY_PER_BOX),
+        packValue: Number(item.PACK_PER_BOX),
+        remainingQty: Number(item.AVAILABLE_QUANTITY),
+        uniqueKey: uniqueKey,
+      };
     }
+  });
 
-    const itemConfigs = selectedData.map((item) => ({
-      ...item,
-      totalQty: Number(item.QUANTITY),
-      qtyPerBox: Number(item.QUANTITY_PER_BOX),
-      packValue: Number(item.PACK_PER_BOX),
-      remainingQty: Number(item.AVAILABLE_QUANTITY),
+  const itemConfigs = Object.values(groupedConfigs);
 
-      uniqueKey: `${item.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID}_${item.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_DIM_ID}`,
-    }));
+  const payload = [];
+  let boxIndex = 0;
 
-    const payload = [];
-    let boxIndex = 0;
+  while (boxIndex < totalBoxToGenerate) {
+    let allItemsHaveQty = true;
+    const boxSeq = boxIndex + 1;
+    const boxItems = [];
 
-    while (boxIndex < totalBoxToGenerate) {
-      let allItemsHaveQty = true;
-      const boxSeq = boxIndex + 1;
-      const boxItems = [];
-
-      for (const config of itemConfigs) {
-        if (config.remainingQty <= 0) {
-          allItemsHaveQty = false;
-          break;
-        }
-
-        const qtyInThisBox = Math.min(config.qtyPerBox, config.remainingQty);
-        boxItems.push({
-          BOX_SEQ: boxSeq,
-          LOT_OUM: config.LOT_OUM || "BOX",
-          ROLL_WIDTH: config.ROLL_WIDTH,
-          MPO_ID: config.PURCHASE_ORDER_DETAIL.PURCHASE_ORDER_ID,
-          ITEM_ID: config.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID,
-          DIM_ID: config.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_DIM_ID,
-          COLOR: config.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_COLOR,
-          SIZE: config.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_SIZE,
-          UOM: config.PURCHASE_ORDER_DETAIL.PURCHASE_UOM,
-          PACK: config.packValue,
-          QTY: qtyInThisBox,
-        });
-      }
-
-      if (!allItemsHaveQty) {
+    for (const config of itemConfigs) {
+      if (config.remainingQty <= 0) {
+        allItemsHaveQty = false;
         break;
       }
 
-      for (const item of boxItems) {
-        payload.push(item);
-        const config = itemConfigs.find(
-          (c) => c.uniqueKey === `${item.ITEM_ID}_${item.DIM_ID}`
-        );
-        if (config) {
-          config.remainingQty -= item.QTY;
-        }
-      }
-
-      boxIndex++;
-    }
-
-    if (payload.length === 0) {
-      toast.warn("No valid items to pack");
-      return;
-    }
-
-    setLoadingBulk(true);
-    try {
-      await axios.post("/packing/list/add-bulk", {
-        DELIVERY_SUMMARY_ID: currentSchedule.ID,
-        LIST_DETAIL: payload,
+      const qtyInThisBox = Math.min(config.qtyPerBox, config.remainingQty);
+      boxItems.push({
+        BOX_SEQ: boxSeq,
+        LOT_OUM: config.LOT_OUM || "BOX",
+        VENDOR_ROLL_WIDTH: config.VENDOR_ROLL_WIDTH,
+        ROLL_WIDTH_OUM: config.ROLL_WIDTH_OUM,
+        MPO_ID: config.PURCHASE_ORDER_DETAIL.PURCHASE_ORDER_ID,
+        ITEM_ID: config.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID,
+        DIM_ID: config.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_DIM_ID,
+        COLOR: config.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_COLOR,
+        SIZE: config.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_SIZE,
+        UOM: config.PURCHASE_ORDER_DETAIL.PURCHASE_UOM,
+        PACK: config.packValue,
+        QTY: qtyInThisBox,
       });
-
-      toast.success("Bulk packing list created successfully!");
-      setShowBulkPackingModal(false);
-      fetchPackingList(currentSchedule.ID);
-    } catch (err) {
-      toast.error(
-        err.response?.data?.message ?? "Failed to create packing list"
-      );
-    } finally {
-      setLoadingBulk(false);
     }
-  };
+
+    if (!allItemsHaveQty) {
+      break;
+    }
+
+    for (const item of boxItems) {
+      payload.push(item);
+      const config = itemConfigs.find(
+        (c) => c.uniqueKey === `${item.ITEM_ID}_${item.DIM_ID}_${item.MPO_ID}`
+      );
+      if (config) {
+        config.remainingQty -= item.QTY;
+      }
+    }
+
+    boxIndex++;
+  }
+
+  if (payload.length === 0) {
+    toast.warn("No valid items to pack");
+    return;
+  }
+
+  setLoadingBulk(true);
+  try {
+    await axios.post("/packing/list/add-bulk", {
+      DELIVERY_SUMMARY_ID: currentSchedule.ID,
+      LIST_DETAIL: payload,
+    });
+
+    toast.success("Bulk packing list created successfully!");
+    setShowBulkPackingModal(false);
+    fetchPackingList(currentSchedule.ID);
+  } catch (err) {
+    toast.error(
+      err.response?.data?.message ?? "Failed to create packing list"
+    );
+  } finally {
+    setLoadingBulk(false);
+  }
+};
 
   const exportToExcel = () => {
     if (!deliveryScheduleList || deliveryScheduleList.length === 0) {
@@ -1235,6 +1264,13 @@ const DeliverySummaryList = () => {
     const exportData = [];
 
     if (!packingList.length) {
+      for (let i = 0; i < deliveryScheduleList.length; i++) {
+        const data = deliveryScheduleList[i];
+        if (!data.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID) {
+          toast.error("Please fill all supplier item id")  
+          return
+        }
+      }
       exportData.push({
         "Box Seq/No": "",
         "Barcode / QR Code Box": "",
@@ -1261,7 +1297,8 @@ const DeliverySummaryList = () => {
                   ?.PURCHASE_ORDER_ID || "N/A",
               "Supplier Item ID": detail.ITEM.ITEM_ID || "",
               "Lot OUM": box.LOT_OUM,
-              "Roll Width": box.ROLL_WIDTH,
+              "Roll Width": box.VENDOR_ROLL_WIDTH,
+              "Roll Width OUM": box.ROLL_WIDTH_OUM,
               "Dim ID":
                 detail.DELIVERY_SUMMARY_LIST?.PURCHASE_ORDER_DETAIL
                   ?.MATERIAL_ITEM_DIM_ID || "N/A",
@@ -1283,7 +1320,8 @@ const DeliverySummaryList = () => {
             "Box Seq/No": box.SEQUENCE,
             "Barcode / QR Code Box": box.BARCODE_CODE || "",
             "Lot OUM": box.LOT_OUM,
-            "Roll Width": box.ROLL_WIDTH,
+            "Roll Width": box.VENDOR_ROLL_WIDTH,
+            "Roll Width OUM": box.ROLL_WIDTH_OUM,
             "MPO ID": "",
             "Supplier Item ID": "",
             "Dim ID": "",
@@ -1376,7 +1414,7 @@ const DeliverySummaryList = () => {
   };
 
   const openModalCreateBulk = () => {
-    setShowBulkPackingModal(true);
+    
     fetchDeliverySummariesListUsage(currentSchedule?.ID);
   };
 
@@ -1410,7 +1448,12 @@ const DeliverySummaryList = () => {
   const handleGenerateLabel = async () => {
     try {
       const {data} = await axios.get(`/v2/delivery/summary-list/${currentSchedule?.ID}`)  
-      generatePackingLabelPDF(data.data[0]);
+      if (!data.data[0]?.PACKING_LIST?.length) {
+       toast.warn("Packing list is empty")
+       return 
+      }
+      generatePackingLabelPDF(data.data[0]);  
+      
     } catch (err) {
       toast.error(err?.response?.data?.message ?? "Failed to fetch print data")
     }
@@ -1737,7 +1780,6 @@ const DeliverySummaryList = () => {
                 LOT_OUM: item.LOT_OUM || defaultLotUom,
                 PACK_PER_BOX: item.PACK_PER_BOX || defaultPack,
                 QUANTITY_PER_BOX: item.QUANTITY_PER_BOX || defaultQty,
-                ROLL_WIDTH_DECIMAL: item.ROLL_WIDTH_DECIMAL || 0,
               }))}
               columnDefs={matrixPackingList}
               defaultColDef={defaultColDef}
@@ -2175,6 +2217,7 @@ const DeliverySummaryList = () => {
                                         {box.BARCODE_CODE || "-"}
                                       </Card.Subtitle>
                                       {box.LOT_OUM === "ROLL" && (
+                                        <>
                                         <Card.Subtitle className="mb-2">
                                           Roll Width:{" "}
                                           <span
@@ -2183,9 +2226,21 @@ const DeliverySummaryList = () => {
                                               fontWeight: "bold",
                                             }}
                                           >
-                                            {box.ROLL_WIDTH || "-"}
+                                            {box.VENDOR_ROLL_WIDTH || "-"}
                                           </span>
                                         </Card.Subtitle>
+                                        <Card.Subtitle className="mb-2">
+                                          Roll Width OUM:{" "}
+                                          <span
+                                            style={{
+                                              color: "red",
+                                              fontWeight: "bold",
+                                            }}
+                                          >
+                                            {box.ROLL_WIDTH_OUM || "-"}
+                                          </span>
+                                        </Card.Subtitle>
+                                        </>
                                       )}
                                       <Row style={{ width: "350px" }} >
                                         <Col sm="6">
