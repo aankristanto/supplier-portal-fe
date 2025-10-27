@@ -147,7 +147,7 @@ export const printMpoToPdf = (po, lineItems) => {
     doc.text('DATE', 120, 20);
     doc.text(`: ${po.MPO_DATE ? moment(po.MPO_DATE).format('DD MMMM YYYY') : moment().format('DD MMMM YYYY')}`, 135, 20);
     doc.text('STATUS', 120, 25);
-    doc.text(`: ${po.MPO_STATUS || 'Open'}`, 135, 25);
+    doc.text(`: Confirmed`, 135, 25);
   }
 
 
@@ -188,7 +188,7 @@ export const printMpoToPdf = (po, lineItems) => {
     doc.setFont('helvetica', 'bold');
     doc.text('Amount In Words: ', 5, y + 5, { maxWidth: 40 });
     doc.setFont('helvetica', 'normal');
-    doc.text(`${numberToWords(parseFloat(grandTotal).toFixed(2))} ${po.CURRENCY_CODE}`, 43, y + 5, { maxWidth: 90 });
+    doc.text(`${numberToWords(parseFloat(grandTotal).toFixed(2))}${po.CURRENCY_CODE}`, 43, y + 5, { maxWidth: 90 });
 
     doc.setFontSize(9);
     doc.text('TOTAL AMOUNT', 135, y + 5);
@@ -306,7 +306,7 @@ export const printMpoToPdf = (po, lineItems) => {
   doc.text('Delivery Location :', 148, 53);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(po.INVOICE_DETAIL?.INVOICE_COMPANY_NAME || '', 148, 58);
+  doc.text(po.DELIVERY_UNIT_ADDRESS || '', 148, 58);
   doc.setFontSize(8);
   doc.text(po.INVOICE_DETAIL?.INVOICE_ADDRESS || '', 148, 62, { maxWidth: 50 });
 
@@ -318,10 +318,12 @@ export const printMpoToPdf = (po, lineItems) => {
 
   doc.setFont('helvetica', 'bold');
   doc.text('Terms of Delivery :', 78, 85);
+  doc.setFont('helvetica', 'normal');
   doc.text(po.DELIVERY_TERM || '', 110, 85);
 
   doc.setFont('helvetica', 'bold');
   doc.text('Terms of Payment :', 138, 85);
+  doc.setFont('helvetica', 'normal');
   doc.text(po.PAYMENT_TERM_NAME || '', 173, 85);
 
 
