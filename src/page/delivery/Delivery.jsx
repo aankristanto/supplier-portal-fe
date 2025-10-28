@@ -1450,6 +1450,11 @@ const DeliverySummaryList = () => {
   };
 
   const handleGenerateLabel = async () => {
+    if (!currentSchedule.IS_APPROVE) {
+      toast.warn("Approve delivery first to generate packing label")
+      return
+    }
+    
     try {
       const {data} = await axios.get(
         `/v2/delivery/summary-list/${currentSchedule?.ID}`
@@ -1861,7 +1866,7 @@ const DeliverySummaryList = () => {
                     : "Create Delivery Schedule"}
                 </h5>
                 <div>
-                  {deliveryScheduleList.reduce(
+                  {packingList.lengt && deliveryScheduleList.reduce(
                     (sum, row) => sum + Number(row.QUANTITY),
                     0
                   ) ===
@@ -1869,7 +1874,7 @@ const DeliverySummaryList = () => {
                       (sum, row) => sum + Number(row.TOTAL_QUANTITY),
                       0
                     ) &&
-                    !currentSchedule.IS_APPROVE && (
+                    !currentSchedule.IS_APPROVE && isEditing ? (
                       <Button
                         className="mx-3"
                         variant="success"
@@ -1878,8 +1883,7 @@ const DeliverySummaryList = () => {
                       >
                         Approve Status
                       </Button>
-                    )}
-
+                    ): ''}
                   <Button
                     className="mx-3"
                     variant="secondary"

@@ -33,6 +33,13 @@ const UserPage = () => {
 
   const columnDefs = [
     {
+      headerName: "Title",
+      field: "GENDER",
+      filter: true,
+      sortable: true,
+      width: 100,
+    },
+    {
       headerName: "Initial",
       field: "INITIAL",
       filter: true,
@@ -63,18 +70,18 @@ const UserPage = () => {
       width: 120,
     },
     {
-      headerName: "Company ID",
-      field: "COMPANY_ID",
+      headerName: "Role",
+      field: "ROLE",
       filter: true,
       sortable: true,
       width: 120,
     },
     {
-      headerName: "Title",
-      field: "GENDER",
+      headerName: "Company ID",
+      field: "COMPANY_ID",
       filter: true,
       sortable: true,
-      width: 100,
+      width: 120,
     },
     {
       headerName: "Aksi",
@@ -323,7 +330,7 @@ const UserPage = () => {
                   >
                     <option value="">Select Company</option>
                     {company.map((item, idx) => (
-                      <option value={item.ID} key={idx}>{item.NAME}</option>
+                      <option value={item.ID} key={idx}>{item.ID} - {item.NAME}</option>
                     ))}
                   </Form.Select>
                 </Form.Group>
