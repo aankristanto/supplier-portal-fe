@@ -39,6 +39,7 @@ const DeliverySummaryList = () => {
   const [showBulkPackingModal, setShowBulkPackingModal] = useState(false);
   const [loadingBulk, setLoadingBulk] = useState(false);
   const bulkPackingGridRef = useRef(null);
+  const lastSelectedPOsRef = useRef([]);
 
   const [countries, setCountries] = useState([]);
   const [shippingTerms, setShippingTerms] = useState([]);
@@ -186,7 +187,7 @@ const DeliverySummaryList = () => {
       cellEditorParams: {
         values: ["BOX", "ROLL"],
       },
-      cellStyle: {backgroundColor: "#fff3cd"}
+      cellStyle: {backgroundColor: "#fff3cd"},
     },
     {
       headerName: "Pack Per Box",
@@ -253,7 +254,7 @@ const DeliverySummaryList = () => {
         if (params.data?.LOT_OUM !== "ROLL") {
           return "-";
         }
-        return params.value;
+        return params.value ?? "MM";
       },
     },
     {
@@ -591,11 +592,13 @@ const DeliverySummaryList = () => {
     }
   };
 
-  const fetchPurchaseOrders = async () => {
+  const fetchPurchaseOrders = async (isIgnore, isIgnoreEdit) => {
     try {
       const {data} = await axios.get("/purchase-order/main", {
         params: {
           MPO_STATUS: "Process",
+          IS_IGNORE: isIgnore,
+          IS_IGNORE_EDIT: isIgnoreEdit,
         },
       });
       setPurchaseOrders(data.data || []);
@@ -785,22 +788,22 @@ const DeliverySummaryList = () => {
     const selectedNodes = gridApi.getSelectedNodes();
     const selectedData = selectedNodes.map((node) => node.data);
 
+    const lastSelected = lastSelectedPOsRef.current;
     const isSame =
-      selectedData.length === selectedPurchaseOrders.length &&
-      selectedData.every(
-        (item, index) => item.ID === selectedPurchaseOrders[index]?.ID
-      );
+      selectedData.length === lastSelected.length &&
+      selectedData.every((item, index) => item.ID === lastSelected[index]?.ID);
 
     if (isSame) return;
 
-    const snapshotBeforeChange = [...selectedPurchaseOrders];
+    lastSelectedPOsRef.current = [...selectedData];
 
     if (!isEditing) {
       const success = await handleSave(selectedData);
       if (success) {
         await fetchPurchaseOrdersListSell(success.ID);
       } else {
-        restoreSelection(snapshotBeforeChange);
+        lastSelectedPOsRef.current = lastSelected;
+        restoreSelection(lastSelected);
       }
       return;
     }
@@ -809,7 +812,8 @@ const DeliverySummaryList = () => {
     if (success) {
       await fetchPurchaseOrdersListSell(currentSchedule.ID);
     } else {
-      restoreSelection(snapshotBeforeChange);
+      lastSelectedPOsRef.current = lastSelected;
+      restoreSelection(lastSelected);
     }
   };
 
@@ -861,7 +865,7 @@ const DeliverySummaryList = () => {
 
   const handleAddNew = () => {
     resetForm();
-    fetchPurchaseOrders();
+    fetchPurchaseOrders(true);
     setIsEditing(false);
     setShowForm(true);
   };
@@ -870,7 +874,7 @@ const DeliverySummaryList = () => {
     setCurrentSchedule(schedule);
     setIsEditing(true);
     setShowForm(true);
-    await fetchPurchaseOrders();
+    await fetchPurchaseOrders(true, schedule?.ID);
     fetchDeliverySummariesList(schedule?.ID);
     await fetchItemNotCounsume(schedule?.ID);
   };
@@ -1099,123 +1103,124 @@ const DeliverySummaryList = () => {
   };
 
   const handleBulkPackingSubmit = async () => {
-  if (!currentSchedule?.ID) {
-    toast.warn("Schedule ID is missing");
-    return;
-  }
-
-  const selectedNodes = bulkPackingGridRef.current.api.getSelectedNodes();
-  const selectedData = selectedNodes.map((node) => node.data);
-
-  if (selectedData.length === 0) {
-    toast.warn("Please select at least one item");
-    return;
-  }
-
-  const invalidItems = selectedData.filter(
-    (item) =>
-      !item.QUANTITY_PER_BOX ||
-      item.QUANTITY_PER_BOX <= 0 ||
-      !item.PACK_PER_BOX ||
-      item.PACK_PER_BOX < 0
-  );
-  if (invalidItems.length > 0) {
-    toast.warn(
-      "Please enter valid Pack Per Box and Qty per Box for all selected items"
-    );
-    return;
-  }
-
-  // Kelompokkan item berdasarkan kombinasi ITEM_ID, DIM_ID, dan MPO_ID
-  const groupedConfigs = {};
-  selectedData.forEach((item) => {
-    const uniqueKey = `${item.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID}_${item.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_DIM_ID}_${item.PURCHASE_ORDER_DETAIL.PURCHASE_ORDER_ID}`;
-
-    if (!groupedConfigs[uniqueKey]) {
-      groupedConfigs[uniqueKey] = {
-        ...item,
-        totalQty: Number(item.QUANTITY),
-        qtyPerBox: Number(item.QUANTITY_PER_BOX),
-        packValue: Number(item.PACK_PER_BOX),
-        remainingQty: Number(item.AVAILABLE_QUANTITY),
-        uniqueKey: uniqueKey,
-      };
+    if (!currentSchedule?.ID) {
+      toast.warn("Schedule ID is missing");
+      return;
     }
-  });
 
-  const itemConfigs = Object.values(groupedConfigs);
+    const selectedNodes = bulkPackingGridRef.current.api.getSelectedNodes();
+    const selectedData = selectedNodes.map((node) => node.data);
 
-  const payload = [];
-  let boxIndex = 0;
+    if (selectedData.length === 0) {
+      toast.warn("Please select at least one item");
+      return;
+    }
 
-  while (boxIndex < totalBoxToGenerate) {
-    let allItemsHaveQty = true;
-    const boxSeq = boxIndex + 1;
-    const boxItems = [];
+    const invalidItems = selectedData.filter(
+      (item) =>
+        !item.QUANTITY_PER_BOX ||
+        item.QUANTITY_PER_BOX <= 0 ||
+        !item.PACK_PER_BOX ||
+        item.PACK_PER_BOX < 0
+    );
+    if (invalidItems.length > 0) {
+      toast.warn(
+        "Please enter valid Pack Per Box and Qty per Box for all selected items"
+      );
+      return;
+    }
 
-    for (const config of itemConfigs) {
-      if (config.remainingQty <= 0) {
-        allItemsHaveQty = false;
+    const groupedConfigs = {};
+    selectedData.forEach((item) => {
+      const uniqueKey = `${item.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID}_${item.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_DIM_ID}_${item.PURCHASE_ORDER_DETAIL.PURCHASE_ORDER_ID}`;
+
+      if (!groupedConfigs[uniqueKey]) {
+        groupedConfigs[uniqueKey] = {
+          ...item,
+          totalQty: Number(item.QUANTITY),
+          qtyPerBox: Number(item.QUANTITY_PER_BOX),
+          packValue: Number(item.PACK_PER_BOX),
+          remainingQty: Number(item.AVAILABLE_QUANTITY),
+          uniqueKey: uniqueKey,
+        };
+      }
+    });
+
+    const itemConfigs = Object.values(groupedConfigs);
+
+    const payload = [];
+    let boxIndex = 0;
+
+    while (boxIndex < totalBoxToGenerate) {
+      let allItemsHaveQty = true;
+      const boxSeq = boxIndex + 1;
+      const boxItems = [];
+
+      for (const config of itemConfigs) {
+        if (config.remainingQty <= 0) {
+          allItemsHaveQty = false;
+          break;
+        }
+
+        console.log("config ", config);
+        
+        const qtyInThisBox = Math.min(config.qtyPerBox, config.remainingQty);
+        boxItems.push({
+          BOX_SEQ: boxSeq,
+          LOT_OUM: config.LOT_OUM || "BOX",
+          VENDOR_ROLL_WIDTH: config.VENDOR_ROLL_WIDTH,
+          ROLL_WIDTH_OUM: config.ROLL_WIDTH_OUM || 'MM',
+          MPO_ID: config.PURCHASE_ORDER_DETAIL.PURCHASE_ORDER_ID,
+          ITEM_ID: config.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID,
+          DIM_ID: config.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_DIM_ID,
+          COLOR: config.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_COLOR,
+          SIZE: config.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_SIZE,
+          UOM: config.PURCHASE_ORDER_DETAIL.PURCHASE_UOM,
+          PACK: config.packValue,
+          QTY: qtyInThisBox,
+        });
+      }
+
+      if (!allItemsHaveQty) {
         break;
       }
 
-      const qtyInThisBox = Math.min(config.qtyPerBox, config.remainingQty);
-      boxItems.push({
-        BOX_SEQ: boxSeq,
-        LOT_OUM: config.LOT_OUM || "BOX",
-        VENDOR_ROLL_WIDTH: config.VENDOR_ROLL_WIDTH,
-        ROLL_WIDTH_OUM: config.ROLL_WIDTH_OUM,
-        MPO_ID: config.PURCHASE_ORDER_DETAIL.PURCHASE_ORDER_ID,
-        ITEM_ID: config.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID,
-        DIM_ID: config.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_DIM_ID,
-        COLOR: config.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_COLOR,
-        SIZE: config.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_SIZE,
-        UOM: config.PURCHASE_ORDER_DETAIL.PURCHASE_UOM,
-        PACK: config.packValue,
-        QTY: qtyInThisBox,
-      });
-    }
-
-    if (!allItemsHaveQty) {
-      break;
-    }
-
-    for (const item of boxItems) {
-      payload.push(item);
-      const config = itemConfigs.find(
-        (c) => c.uniqueKey === `${item.ITEM_ID}_${item.DIM_ID}_${item.MPO_ID}`
-      );
-      if (config) {
-        config.remainingQty -= item.QTY;
+      for (const item of boxItems) {
+        payload.push(item);
+        const config = itemConfigs.find(
+          (c) => c.uniqueKey === `${item.ITEM_ID}_${item.DIM_ID}_${item.MPO_ID}`
+        );
+        if (config) {
+          config.remainingQty -= item.QTY;
+        }
       }
+
+      boxIndex++;
     }
 
-    boxIndex++;
-  }
+    if (payload.length === 0) {
+      toast.warn("No valid items to pack");
+      return;
+    }
 
-  if (payload.length === 0) {
-    toast.warn("No valid items to pack");
-    return;
-  }
+    setLoadingBulk(true);
+    try {
+      await axios.post("/packing/list/add-bulk", {
+        DELIVERY_SUMMARY_ID: currentSchedule.ID,
+        LIST_DETAIL: payload,
+      });
 
-  setLoadingBulk(true);
-  try {
-    await axios.post("/packing/list/add-bulk", {
-      DELIVERY_SUMMARY_ID: currentSchedule.ID,
-      LIST_DETAIL: payload,
-    });
-
-    toast.success("Bulk packing list created successfully!");
-    setShowBulkPackingModal(false);
-    fetchPackingList(currentSchedule.ID);
-  } catch (err) {
-    toast.error(
-      err.response?.data?.message ?? "Failed to create packing list"
-    );
-  } finally {
-    setLoadingBulk(false);
-  }
-};
+      toast.success("Bulk packing list created successfully!");
+      setShowBulkPackingModal(false);
+      fetchPackingList(currentSchedule.ID);
+    } catch (err) {
+      toast.error(
+        err.response?.data?.message ?? "Failed to create packing list"
+      );
+    } finally {
+      setLoadingBulk(false);
+    }
+  };
 
   const exportToExcel = () => {
     if (!deliveryScheduleList || deliveryScheduleList.length === 0) {
@@ -1267,8 +1272,8 @@ const DeliverySummaryList = () => {
       for (let i = 0; i < deliveryScheduleList.length; i++) {
         const data = deliveryScheduleList[i];
         if (!data.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID) {
-          toast.error("Please fill all supplier item id")  
-          return
+          toast.error("Please fill all supplier item id");
+          return;
         }
       }
       exportData.push({
@@ -1363,30 +1368,32 @@ const DeliverySummaryList = () => {
 
   const handleApprove = async () => {
     const confirm = await Swal.fire({
-          title: "Approve Delivery?",
-          icon: "warning",
-          showCancelButton: true,
-          confirmButtonText: "Yes, Approve Delivery!",
-          cancelButtonText: "Cancel",
-          confirmButtonColor: "#d33",
-          cancelButtonColor: "#3085d6",
-          reverseButtons: true,
-        });
+      title: "Approve Delivery?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, Approve Delivery!",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      reverseButtons: true,
+    });
 
-        if (!confirm.isConfirmed) {
-          setLoading(false);
-          return false;
-        }
-    try {
-      const {data} = await axios.patch(`/v2/delivery/summary/${currentSchedule?.ID}`, {
-        IS_APPROVE: true
-      })
-      setCurrentSchedule(data.data)
-    } catch (err) {
-      toast.error(err?.response?.data?.message ?? "Failed to approve  status")
+    if (!confirm.isConfirmed) {
+      setLoading(false);
+      return false;
     }
-  }
-
+    try {
+      const {data} = await axios.patch(
+        `/v2/delivery/summary/${currentSchedule?.ID}`,
+        {
+          IS_APPROVE: true,
+        }
+      );
+      setCurrentSchedule(data.data);
+    } catch (err) {
+      toast.error(err?.response?.data?.message ?? "Failed to approve  status");
+    }
+  };
 
   const resetForm = () => {
     setCurrentSchedule({
@@ -1414,7 +1421,6 @@ const DeliverySummaryList = () => {
   };
 
   const openModalCreateBulk = () => {
-    
     fetchDeliverySummariesListUsage(currentSchedule?.ID);
   };
 
@@ -1440,25 +1446,24 @@ const DeliverySummaryList = () => {
     const country = selected[0];
     setCurrentSchedule({
       ...currentSchedule,
-      PORT_OF_LOADING: country ? country.COUNTRY_NAME: "",
-      PORT_OF_LOADING_CODE: country ? country.COUNTRY_CODE  : "",
+      PORT_OF_LOADING: country ? country.COUNTRY_NAME : "",
+      PORT_OF_LOADING_CODE: country ? country.COUNTRY_CODE : "",
     });
   };
 
   const handleGenerateLabel = async () => {
     try {
-      const {data} = await axios.get(`/v2/delivery/summary-list/${currentSchedule?.ID}`)  
+      const {data} = await axios.get(
+        `/v2/delivery/summary-list/${currentSchedule?.ID}`
+      );
       if (!data.data[0]?.PACKING_LIST?.length) {
-       toast.warn("Packing list is empty")
-       return 
+        toast.warn("Packing list is empty");
+        return;
       }
-      generatePackingLabelPDF(data.data[0]);  
-      
+      generatePackingLabelPDF(data.data[0]);
     } catch (err) {
-      toast.error(err?.response?.data?.message ?? "Failed to fetch print data")
+      toast.error(err?.response?.data?.message ?? "Failed to fetch print data");
     }
-
-    
   };
 
   const handleShippingTermChange = (e) => {
@@ -1496,20 +1501,26 @@ const DeliverySummaryList = () => {
 
   useEffect(() => {
     if (poGridRef.current) {
-      const api = poGridRef.current.api;
-      if (!api) return;
-      api.deselectAll();
-
-      if (selectedPurchaseOrders.length > 0) {
-        const selectedIds = new Set(selectedPurchaseOrders.map((po) => po.ID));
-        api.forEachNode((node) => {
-          if (selectedIds.has(node.data.ID)) {
-            node.setSelected(true);
-          }
-        });
-      }
+      setTimeout(() => {
+        const api = poGridRef.current.api;
+        if (!api) return;
+        api.deselectAll();
+        if (selectedPurchaseOrders.length > 0) {
+          const selectedIds = new Set(
+            selectedPurchaseOrders.map((po) => po.ID)
+          );
+          api.forEachNode((node) => {
+            if (selectedIds.has(node.data.ID)) {
+              node.setSelected(true);
+            }
+          });
+        }
+      }, 500);
     }
-    return () => {};
+  }, [selectedPurchaseOrders]);
+
+  useEffect(() => {
+    lastSelectedPOsRef.current = [...selectedPurchaseOrders];
   }, [selectedPurchaseOrders]);
 
   useEffect(() => {
@@ -1852,18 +1863,25 @@ const DeliverySummaryList = () => {
                     : "Create Delivery Schedule"}
                 </h5>
                 <div>
-                  {
-                    deliveryScheduleList.reduce((sum, row) => sum + Number(row.QUANTITY), 0) === packingList.reduce((sum, row) => sum + Number(row.TOTAL_QUANTITY), 0) && !currentSchedule.IS_APPROVE &&
-                    <Button
-                    className="mx-3"
-                    variant="success"
-                    size="sm"
-                    onClick={handleApprove}
-                  >
-                    Approve Status
-                  </Button>
-                  }
-                
+                  {deliveryScheduleList.reduce(
+                    (sum, row) => sum + Number(row.QUANTITY),
+                    0
+                  ) ===
+                    packingList.reduce(
+                      (sum, row) => sum + Number(row.TOTAL_QUANTITY),
+                      0
+                    ) &&
+                    !currentSchedule.IS_APPROVE && (
+                      <Button
+                        className="mx-3"
+                        variant="success"
+                        size="sm"
+                        onClick={handleApprove}
+                      >
+                        Approve Status
+                      </Button>
+                    )}
+
                   <Button
                     className="mx-3"
                     variant="secondary"
@@ -1874,7 +1892,7 @@ const DeliverySummaryList = () => {
                   </Button>
                   <Button
                     variant="primary"
-                    onClick={() => handleSave()}
+                    onClick={handleSave}
                     disabled={loading}
                     size="sm"
                   >
@@ -2064,6 +2082,8 @@ const DeliverySummaryList = () => {
             onSelect={(e) => changeTab(e)}
           >
             <Tab eventKey="summary" title="Summary">
+              
+              
               <Card className="my-4">
                 <Card.Header>
                   <h5>Select Purchase Orders</h5>
@@ -2079,9 +2099,7 @@ const DeliverySummaryList = () => {
                       rowData={purchaseOrders}
                       columnDefs={poColumnDefs}
                       defaultColDef={defaultColDef}
-                      rowSelection={
-                        !currentSchedule.PACK_ALREADY ? "multiple" : false
-                      }
+                      rowSelection="multiple"
                       onSelectionChanged={(event) =>
                         handlePOSelectionChanged(event.api)
                       }
@@ -2089,7 +2107,7 @@ const DeliverySummaryList = () => {
                     />
                   </div>
                 </Card.Body>
-              </Card>
+              </Card> 
               <Card>
                 <Card.Header>
                   <div className="d-flex justify-content-between align-items-center">
@@ -2139,7 +2157,7 @@ const DeliverySummaryList = () => {
                     <h5>Box List</h5>
                     <Row>
                       <Col md="2"></Col>
-                      <Col md={currentSchedule.IS_APPROVE ? "5": "2"}>
+                      <Col md={currentSchedule.IS_APPROVE ? "5" : "2"}>
                         <Button
                           variant="danger"
                           onClick={handleGenerateLabel}
@@ -2148,49 +2166,46 @@ const DeliverySummaryList = () => {
                           Generate Packing Labels
                         </Button>
                       </Col>
-                      <Col md={currentSchedule.IS_APPROVE ? "5": "2"}>
+                      <Col md={currentSchedule.IS_APPROVE ? "5" : "2"}>
                         <Button size="sm" onClick={exportToExcelPackingList}>
                           Export Template Excel
                         </Button>
                       </Col>
 
-                      {
-                        !currentSchedule.IS_APPROVE && 
+                      {!currentSchedule.IS_APPROVE && (
                         <Col md="2">
-                        <Button
-                          variant="warning"
-                          size="sm"
-                          onClick={openModalCreateBulk}
-                          disabled={!currentSchedule?.ID}
-                        >
-                          Create Bulk Packing List
-                        </Button>
-                      </Col>
-                      }
-                      {
-                        !currentSchedule.IS_APPROVE &&
-                      
-                      <Col md="4">
-                        <Button
-                          size="sm"
-                          variant="success"
-                          disabled={loading2}
-                          onClick={() =>
-                            document.getElementById("fileInput").click()
-                          }
-                        >
-                          {loading2 ? (
-                            <Spinner
-                              animation="border"
-                              variant="warning"
-                              size="sm"
-                            />
-                          ) : (
-                            "Import Excel (Replace all And Bulk Create)"
-                          )}
-                        </Button>
-                      </Col>
-                      }
+                          <Button
+                            variant="warning"
+                            size="sm"
+                            onClick={openModalCreateBulk}
+                            disabled={!currentSchedule?.ID}
+                          >
+                            Create Bulk Packing List
+                          </Button>
+                        </Col>
+                      )}
+                      {!currentSchedule.IS_APPROVE && (
+                        <Col md="4">
+                          <Button
+                            size="sm"
+                            variant="success"
+                            disabled={loading2}
+                            onClick={() =>
+                              document.getElementById("fileInput").click()
+                            }
+                          >
+                            {loading2 ? (
+                              <Spinner
+                                animation="border"
+                                variant="warning"
+                                size="sm"
+                              />
+                            ) : (
+                              "Import Excel (Replace all And Bulk Create)"
+                            )}
+                          </Button>
+                        </Col>
+                      )}
                     </Row>
                   </div>
                 </Card.Header>
@@ -2218,31 +2233,31 @@ const DeliverySummaryList = () => {
                                       </Card.Subtitle>
                                       {box.LOT_OUM === "ROLL" && (
                                         <>
-                                        <Card.Subtitle className="mb-2">
-                                          Roll Width:{" "}
-                                          <span
-                                            style={{
-                                              color: "red",
-                                              fontWeight: "bold",
-                                            }}
-                                          >
-                                            {box.VENDOR_ROLL_WIDTH || "-"}
-                                          </span>
-                                        </Card.Subtitle>
-                                        <Card.Subtitle className="mb-2">
-                                          Roll Width OUM:{" "}
-                                          <span
-                                            style={{
-                                              color: "red",
-                                              fontWeight: "bold",
-                                            }}
-                                          >
-                                            {box.ROLL_WIDTH_OUM || "-"}
-                                          </span>
-                                        </Card.Subtitle>
+                                          <Card.Subtitle className="mb-2">
+                                            Roll Width:{" "}
+                                            <span
+                                              style={{
+                                                color: "red",
+                                                fontWeight: "bold",
+                                              }}
+                                            >
+                                              {box.VENDOR_ROLL_WIDTH || "-"}
+                                            </span>
+                                          </Card.Subtitle>
+                                          <Card.Subtitle className="mb-2">
+                                            Roll Width OUM:{" "}
+                                            <span
+                                              style={{
+                                                color: "red",
+                                                fontWeight: "bold",
+                                              }}
+                                            >
+                                              {box.ROLL_WIDTH_OUM || "-"}
+                                            </span>
+                                          </Card.Subtitle>
                                         </>
                                       )}
-                                      <Row style={{ width: "350px" }} >
+                                      <Row style={{width: "350px"}}>
                                         <Col sm="6">
                                           <Card.Subtitle className="mb-2 text-muted">
                                             Total Pack: {box.TOTAL_PACK}
@@ -2263,16 +2278,14 @@ const DeliverySummaryList = () => {
                                         Watch
                                       </button>
 
-                                      {
-                                        !currentSchedule.IS_APPROVE && 
-                                      
-                                      <button
-                                        className="btn btn-sm btn-outline-danger"
-                                        onClick={() => handleDelete(box.ID)}
-                                      >
-                                        Delete
-                                      </button>
-                                      }
+                                      {!currentSchedule.IS_APPROVE && (
+                                        <button
+                                          className="btn btn-sm btn-outline-danger"
+                                          onClick={() => handleDelete(box.ID)}
+                                        >
+                                          Delete
+                                        </button>
+                                      )}
                                     </div>
                                   </div>
 
