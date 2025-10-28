@@ -1161,8 +1161,6 @@ const DeliverySummaryList = () => {
           allItemsHaveQty = false;
           break;
         }
-
-        console.log("config ", config);
         
         const qtyInThisBox = Math.min(config.qtyPerBox, config.remainingQty);
         boxItems.push({
