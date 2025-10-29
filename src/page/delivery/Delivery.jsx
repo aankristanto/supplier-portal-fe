@@ -488,6 +488,7 @@ const DeliverySummaryList = () => {
     {headerName: "Port Of Loading", field: "PORT_OF_LOADING", width: 150},
     {headerName: "Packing Slip No", field: "PACKING_SLIP_NO", width: 150},
     {headerName: "Invoice No", field: "INVOICE_NO", width: 150},
+    {headerName: "Approved", field: "IS_APPROVE", width: 120, cellRenderer: (params) => params.value ? 'Yes' : 'No'},
     {headerName: "Delivery Note", field: "DELIVERY_NOTE", width: 150},
     {headerName: "Created By", field: "CREATED.INITIAL", width: 150},
     {
@@ -509,7 +510,7 @@ const DeliverySummaryList = () => {
       headerName: "Actions",
       width: 90,
       pinned: "right",
-      cellRenderer: (params) => (
+      cellRenderer: (params) => !params.data.IS_APPROVE && (
         <div className="d-flex gap-2">
           <Button
             size="sm"
@@ -1608,27 +1609,27 @@ const DeliverySummaryList = () => {
                   <tbody>
                     <tr>
                       <td><strong>Sequence:</strong></td>
-                      <td>{modalData.SEQUENCE}</td>
+                      <td>{modalData?.SEQUENCE}</td>
                     </tr>
                     <tr>
                       <td><strong>Lot OUM:</strong></td>
-                      <td>{modalData.LOT_OUM}</td>
+                      <td>{modalData?.LOT_OUM}</td>
                     </tr>
                     <tr>
                       <td><strong>Vendor Barcode:</strong></td>
-                      <td>{modalData.BARCODE_CODE || "N/A"}</td>
+                      <td>{modalData?.BARCODE_CODE || "N/A"}</td>
                     </tr>
                     <tr>
                       <td><strong>Total Pack:</strong></td>
-                      <td>{modalData.TOTAL_PACK}</td>
+                      <td>{modalData?.TOTAL_PACK}</td>
                     </tr>
                     <tr>
                       <td><strong>Total Quantity:</strong></td>
-                      <td>{modalData.TOTAL_QUANTITY}</td>
+                      <td>{modalData?.TOTAL_QUANTITY}</td>
                     </tr>
                     <tr>
                       <td><strong>Created At:</strong></td>
-                      <td>{new Date(modalData.CREATED_AT).toLocaleString()}</td>
+                      <td>{new Date(modalData?.CREATED_AT).toLocaleString()}</td>
                     </tr>
                   </tbody>
                 </Table>
@@ -1647,8 +1648,8 @@ const DeliverySummaryList = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    { modalData.PACKING_LIST_DETAILS.length > 0 ? (
-                      modalData.PACKING_LIST_DETAILS.map((item) => (
+                    { modalData?.PACKING_LIST_DETAILS.length > 0 ? (
+                      modalData?.PACKING_LIST_DETAILS.map((item) => (
                         <tr key={item.ID}>
                           <td>{item.ITEM.ITEM_ID}</td>
                           <td>{item.ITEM.CODE}</td>
@@ -1878,12 +1879,22 @@ const DeliverySummaryList = () => {
             </Card.Header>
             <Card.Body>
               <Row className="g-3">
+                <Col md={12}>
+                  <Form.Group>
+                    <Form.Label>Approved Flag</Form.Label>
+                    <Form.Control
+                      value={currentSchedule.IS_APPROVE ? 'Yes' : 'No'}
+                      disabled
+                    />
+                  </Form.Group>
+                </Col>
                 <Col md={6}>
                   <Form.Group>
                     <Form.Label>ATD Date</Form.Label>
                     <Form.Control
                       type="date"
                       value={currentSchedule.ATD_DATE}
+                      disabled={currentSchedule.IS_APPROVE}
                       onChange={(e) =>
                         setCurrentSchedule({
                           ...currentSchedule,
@@ -1899,6 +1910,7 @@ const DeliverySummaryList = () => {
                     <Form.Control
                       type="date"
                       value={currentSchedule.ATA_DATE}
+                      disabled={currentSchedule.IS_APPROVE}
                       onChange={(e) =>
                         setCurrentSchedule({
                           ...currentSchedule,
@@ -1913,6 +1925,7 @@ const DeliverySummaryList = () => {
                     <Form.Label>Delivery Mode</Form.Label>
                     <Form.Select
                       value={currentSchedule.DELIVERY_MODE}
+                      disabled={currentSchedule.IS_APPROVE}
                       onChange={(e) =>
                         setCurrentSchedule({
                           ...currentSchedule,
@@ -1936,6 +1949,7 @@ const DeliverySummaryList = () => {
                     <Form.Control
                       type="text"
                       value={currentSchedule.PORT_OF_DISCHARGE}
+                      disabled={currentSchedule.IS_APPROVE}
                       onChange={(e) =>
                         setCurrentSchedule({
                           ...currentSchedule,
@@ -1952,6 +1966,7 @@ const DeliverySummaryList = () => {
                       id="port-of-loading-typeahead"
                       labelKey="COUNTRY_NAME"
                       options={countries}
+                      disabled={currentSchedule.IS_APPROVE}
                       selected={selectedCountry}
                       onChange={handleCountryChange}
                       placeholder="Select country..."
@@ -1965,6 +1980,7 @@ const DeliverySummaryList = () => {
                     <Form.Select
                       value={currentSchedule.TERM_OF_DELIVERY || ""}
                       onChange={handleShippingTermChange}
+                      disabled={currentSchedule.IS_APPROVE}
                     >
                       <option value="">Select Term...</option>
                       {shippingTerms.map((term) => (
@@ -1985,6 +2001,7 @@ const DeliverySummaryList = () => {
                     <Form.Control
                       type="text"
                       value={currentSchedule.PACKING_SLIP_NO}
+                      disabled={currentSchedule.IS_APPROVE}
                       onChange={(e) =>
                         setCurrentSchedule({
                           ...currentSchedule,
@@ -2000,6 +2017,7 @@ const DeliverySummaryList = () => {
                     <Form.Control
                       type="text"
                       value={currentSchedule.INVOICE_NO}
+                      disabled={currentSchedule.IS_APPROVE}
                       onChange={(e) =>
                         setCurrentSchedule({
                           ...currentSchedule,
@@ -2015,6 +2033,7 @@ const DeliverySummaryList = () => {
                     <Form.Control
                       type="text"
                       value={currentSchedule.CONTAINER_NOTE}
+                      disabled={currentSchedule.IS_APPROVE}
                       onChange={(e) =>
                         setCurrentSchedule({
                           ...currentSchedule,
@@ -2032,6 +2051,7 @@ const DeliverySummaryList = () => {
                       as="textarea"
                       rows={2}
                       value={currentSchedule.DELIVERY_NOTE}
+                      disabled={currentSchedule.IS_APPROVE}
                       onChange={(e) =>
                         setCurrentSchedule({
                           ...currentSchedule,
