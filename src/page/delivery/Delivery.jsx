@@ -56,10 +56,15 @@ const DeliverySummaryList = () => {
 
   const [modalShow, setModalShow] = useState(false);
   const [modalData, setModalData] = useState(null);
+
   const [totalBoxToGenerate, setTotalBoxToGenerate] = useState(1);
   const [defaultLotUom, setDefaultLotUom] = useState("BOX");
   const [defaultPack, setDefaultPack] = useState(0);
   const [defaultQty, setDefaultQty] = useState(0);
+  const [defaultGsm, setDefaultGsm] = useState("");
+  const [defaultElongation, setDefaultElongation] = useState("");
+  const [defaultRollWidth, setDefaultRollWidth] = useState("");
+  const [defaultRollWidthOum, setDefaultRollWidthOum] = useState("MM");
 
   const [deliveryScheduleList, setDeliveryScheduleList] = useState([]);
   const [deliveryScheduleListUsage, setDeliveryScheduleListUsage] = useState(
@@ -182,12 +187,8 @@ const DeliverySummaryList = () => {
       headerName: "Lot OUM",
       field: "LOT_OUM",
       width: 130,
-      editable: true,
-      cellEditor: "agSelectCellEditor",
-      cellEditorParams: {
-        values: ["BOX", "ROLL"],
-      },
-      cellStyle: {backgroundColor: "#fff3cd"},
+      editable: false,
+      cellStyle: {backgroundColor: "#90EE90"},
     },
     {
       headerName: "Pack Per Box",
@@ -222,17 +223,8 @@ const DeliverySummaryList = () => {
       headerName: "Roll Width",
       field: "VENDOR_ROLL_WIDTH",
       width: 150,
-      editable: (params) => params.data?.LOT_OUM === "ROLL",
-      cellEditor: "agNumberCellEditor",
-      cellEditorParams: {
-        min: 0,
-        step: 0.01,
-      },
-      cellStyle: (params) => ({
-        backgroundColor:
-          params.data?.LOT_OUM === "ROLL" ? "#fff3cd" : "#f8f9fa",
-        color: params.data?.LOT_OUM === "ROLL" ? "black" : "#6c757d",
-      }),
+      editable: false,
+      cellStyle: {backgroundColor: "#90EE90"},
       valueFormatter: (params) => {
         if (params.data?.LOT_OUM !== "ROLL") {
           return "-";
@@ -244,18 +236,26 @@ const DeliverySummaryList = () => {
       headerName: "Roll Width OUM",
       field: "ROLL_WIDTH_OUM",
       width: 150,
-      editable: (params) => params.data?.LOT_OUM === "ROLL",
-      cellStyle: (params) => ({
-        backgroundColor:
-          params.data?.LOT_OUM === "ROLL" ? "#fff3cd" : "#f8f9fa",
-        color: params.data?.LOT_OUM === "ROLL" ? "black" : "#6c757d",
-      }),
+      editable: false,
+      cellStyle: {backgroundColor: "#90EE90"},
       valueFormatter: (params) => {
         if (params.data?.LOT_OUM !== "ROLL") {
           return "-";
         }
         return params.value ?? "MM";
       },
+    },
+    {
+      headerName: "GSM",
+      field: "GSM",
+      width: 150,
+      cellStyle: {backgroundColor: "#90EE90"},
+    },
+    {
+      headerName: "Elongation",
+      field: "ELONGATION",
+      width: 150,
+      cellStyle: {backgroundColor: "#90EE90"},
     },
     {
       headerName: "MPO ID",
@@ -488,7 +488,12 @@ const DeliverySummaryList = () => {
     {headerName: "Port Of Loading", field: "PORT_OF_LOADING", width: 150},
     {headerName: "Packing Slip No", field: "PACKING_SLIP_NO", width: 150},
     {headerName: "Invoice No", field: "INVOICE_NO", width: 150},
-    {headerName: "Approved", field: "IS_APPROVE", width: 120, cellRenderer: (params) => params.value ? 'Yes' : 'No'},
+    {
+      headerName: "Approved",
+      field: "IS_APPROVE",
+      width: 120,
+      cellRenderer: (params) => (params.value ? "Yes" : "No"),
+    },
     {headerName: "Delivery Note", field: "DELIVERY_NOTE", width: 150},
     {headerName: "Created By", field: "CREATED.INITIAL", width: 150},
     {
@@ -510,17 +515,18 @@ const DeliverySummaryList = () => {
       headerName: "Actions",
       width: 90,
       pinned: "right",
-      cellRenderer: (params) => !params.data.IS_APPROVE && (
-        <div className="d-flex gap-2">
-          <Button
-            size="sm"
-            variant="outline-danger"
-            onClick={() => handleRemoveSchedule(params.data.ID)}
-          >
-            <GrTrash />
-          </Button>
-        </div>
-      ),
+      cellRenderer: (params) =>
+        !params.data.IS_APPROVE && (
+          <div className="d-flex gap-2">
+            <Button
+              size="sm"
+              variant="outline-danger"
+              onClick={() => handleRemoveSchedule(params.data.ID)}
+            >
+              <GrTrash />
+            </Button>
+          </div>
+        ),
     },
   ];
 
@@ -688,6 +694,8 @@ const DeliverySummaryList = () => {
           LOT_OUM: row["Lot OUM"],
           VENDOR_ROLL_WIDTH: row["Roll Width"],
           ROLL_WIDTH_OUM: row["Roll Width OUM"],
+          GSM: row["GSM"],
+          ELONGATION: row["Elongation"],
           PACK: row["Pack"],
           QTY: parseFloat(row["PCS"]) || 0,
           BARCODE_CODE: row["Barcode / QR Code Box"],
@@ -1162,13 +1170,15 @@ const DeliverySummaryList = () => {
           allItemsHaveQty = false;
           break;
         }
-        
+
         const qtyInThisBox = Math.min(config.qtyPerBox, config.remainingQty);
         boxItems.push({
           BOX_SEQ: boxSeq,
           LOT_OUM: config.LOT_OUM || "BOX",
           VENDOR_ROLL_WIDTH: config.VENDOR_ROLL_WIDTH,
-          ROLL_WIDTH_OUM: config.ROLL_WIDTH_OUM || 'MM',
+          ROLL_WIDTH_OUM: config.ROLL_WIDTH_OUM || "MM",
+          GSM: config.GSM,
+          ELONGATION: config.ELONGATION,
           MPO_ID: config.PURCHASE_ORDER_DETAIL.PURCHASE_ORDER_ID,
           ITEM_ID: config.PURCHASE_ORDER_DETAIL.MASTER_ITEM_SUPPLIER.ITEM_ID,
           DIM_ID: config.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_DIM_ID,
@@ -1280,6 +1290,9 @@ const DeliverySummaryList = () => {
         "Barcode / QR Code Box": "",
         "Lot OUM": "",
         "Roll Width": "",
+        "Roll Width OUM": "",
+        GSM: "",
+        Elongation: "",
         "MPO ID": "",
         "Supplier Item ID": "",
         "Dim ID": "",
@@ -1303,6 +1316,8 @@ const DeliverySummaryList = () => {
               "Lot OUM": box.LOT_OUM,
               "Roll Width": box.VENDOR_ROLL_WIDTH,
               "Roll Width OUM": box.ROLL_WIDTH_OUM,
+              GSM: box.GSM,
+              Elongation: box.ELONGATION,
               "Dim ID":
                 detail.DELIVERY_SUMMARY_LIST?.PURCHASE_ORDER_DETAIL
                   ?.MATERIAL_ITEM_DIM_ID || "N/A",
@@ -1323,11 +1338,13 @@ const DeliverySummaryList = () => {
           exportData.push({
             "Box Seq/No": box.SEQUENCE,
             "Barcode / QR Code Box": box.BARCODE_CODE || "",
+            "MPO ID": "",
+            "Supplier Item ID": "",
             "Lot OUM": box.LOT_OUM,
             "Roll Width": box.VENDOR_ROLL_WIDTH,
             "Roll Width OUM": box.ROLL_WIDTH_OUM,
-            "MPO ID": "",
-            "Supplier Item ID": "",
+            GSM: box.GSM,
+            Elongation: box.ELONGATION,
             "Dim ID": "",
             Color: "",
             Size: "",
@@ -1452,10 +1469,10 @@ const DeliverySummaryList = () => {
 
   const handleGenerateLabel = async () => {
     if (!currentSchedule.IS_APPROVE) {
-      toast.warn("Approve delivery first to generate packing label")
-      return
+      toast.warn("Approve delivery first to generate packing label");
+      return;
     }
-    
+
     try {
       const {data} = await axios.get(
         `/v2/delivery/summary-list/${currentSchedule?.ID}`
@@ -1602,87 +1619,106 @@ const DeliverySummaryList = () => {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          
-              <div className="mb-3">
-                <h6>General Information</h6>
-                <Table bordered size="sm">
-                  <tbody>
-                    <tr>
-                      <td><strong>Sequence:</strong></td>
-                      <td>{modalData?.SEQUENCE}</td>
+          <div className="mb-3">
+            <h6>General Information</h6>
+            <Table bordered size="sm">
+              <tbody>
+                <tr>
+                  <td>
+                    <strong>Sequence:</strong>
+                  </td>
+                  <td>{modalData?.SEQUENCE}</td>
+                </tr>
+                <tr>
+                  <td>
+                    <strong>Lot OUM:</strong>
+                  </td>
+                  <td>{modalData?.LOT_OUM}</td>
+                </tr>
+                <tr>
+                  <td>
+                    <strong>Vendor Barcode:</strong>
+                  </td>
+                  <td>{modalData?.BARCODE_CODE || "N/A"}</td>
+                </tr>
+                <tr>
+                  <td>
+                    <strong>Total Pack:</strong>
+                  </td>
+                  <td>{modalData?.TOTAL_PACK}</td>
+                </tr>
+                <tr>
+                  <td>
+                    <strong>Total Quantity:</strong>
+                  </td>
+                  <td>{modalData?.TOTAL_QUANTITY}</td>
+                </tr>
+                <tr>
+                  <td>
+                    <strong>Created At:</strong>
+                  </td>
+                  <td>{new Date(modalData?.CREATED_AT).toLocaleString()}</td>
+                </tr>
+              </tbody>
+            </Table>
+          </div>
+          <div>
+            <h6>Items in This Packing List</h6>
+            <Table striped bordered hover size="sm">
+              <thead className="table-dark">
+                <tr>
+                  <th>Supplier Item ID</th>
+                  <th>Supplier Item Code</th>
+                  <th>Code</th>
+                  <th>Size</th>
+                  <th>Pack</th>
+                  <th>Quantity</th>
+                </tr>
+              </thead>
+              <tbody>
+                {modalData?.PACKING_LIST_DETAILS.length > 0 ? (
+                  modalData?.PACKING_LIST_DETAILS.map((item) => (
+                    <tr key={item.ID}>
+                      <td>{item.ITEM.ITEM_ID}</td>
+                      <td>{item.ITEM.CODE}</td>
+                      <td>
+                        {item.DELIVERY_SUMMARY_LIST.PURCHASE_ORDER_DETAIL
+                          .MATERIAL_ITEM_COLOR || "N/A"}
+                      </td>
+                      <td>
+                        {item.DELIVERY_SUMMARY_LIST.PURCHASE_ORDER_DETAIL
+                          .MATERIAL_ITEM_SIZE || "N/A"}
+                      </td>
+                      <td>{item.PACK || "N/A"}</td>
+                      <td>{item.QUANTITY}</td>
                     </tr>
-                    <tr>
-                      <td><strong>Lot OUM:</strong></td>
-                      <td>{modalData?.LOT_OUM}</td>
-                    </tr>
-                    <tr>
-                      <td><strong>Vendor Barcode:</strong></td>
-                      <td>{modalData?.BARCODE_CODE || "N/A"}</td>
-                    </tr>
-                    <tr>
-                      <td><strong>Total Pack:</strong></td>
-                      <td>{modalData?.TOTAL_PACK}</td>
-                    </tr>
-                    <tr>
-                      <td><strong>Total Quantity:</strong></td>
-                      <td>{modalData?.TOTAL_QUANTITY}</td>
-                    </tr>
-                    <tr>
-                      <td><strong>Created At:</strong></td>
-                      <td>{new Date(modalData?.CREATED_AT).toLocaleString()}</td>
-                    </tr>
-                  </tbody>
-                </Table>
-              </div>
-              <div>
-                <h6>Items in This Packing List</h6>
-                <Table striped bordered hover size="sm">
-                  <thead className="table-dark">
-                    <tr>
-                      <th>Supplier Item ID</th>
-                      <th>Supplier Item Code</th>
-                      <th>Code</th>
-                      <th>Size</th>
-                      <th>Pack</th>
-                      <th>Quantity</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    { modalData?.PACKING_LIST_DETAILS.length > 0 ? (
-                      modalData?.PACKING_LIST_DETAILS.map((item) => (
-                        <tr key={item.ID}>
-                          <td>{item.ITEM.ITEM_ID}</td>
-                          <td>{item.ITEM.CODE}</td>
-                          <td>{item.DELIVERY_SUMMARY_LIST.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_COLOR || "N/A"}</td>
-                          <td>{item.DELIVERY_SUMMARY_LIST.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_SIZE || "N/A"}</td>
-                          <td>{item.PACK || "N/A"}</td>
-                          <td>{item.QUANTITY}</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan="6" className="text-center">
-                          No items found
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </Table>
-              </div>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="6" className="text-center">
+                      No items found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </Table>
+          </div>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setModalShow(false)}>
             Close
           </Button>
-          {!currentSchedule.IS_APPROVE && ( <Button
-            variant="danger"
-            onClick={() => {
-              handleDelete(modalData?.ID);
-              setModalShow(false);
-            }}
-          >
-            Delete Packing List
-          </Button> )}
+          {!currentSchedule.IS_APPROVE && (
+            <Button
+              variant="danger"
+              onClick={() => {
+                handleDelete(modalData?.ID);
+                setModalShow(false);
+              }}
+            >
+              Delete Packing List
+            </Button>
+          )}
         </Modal.Footer>
       </Modal>
       <Modal
@@ -1758,6 +1794,62 @@ const DeliverySummaryList = () => {
                 />
               </Form.Group>
             </Col>
+            <Col sm="6">
+              <Form.Group className="mb-3">
+                <Form.Label>
+                  <strong>Default GSM</strong>
+                </Form.Label>
+                <Form.Control
+                  value={defaultGsm}
+                  onChange={(e) => setDefaultGsm(e.target.value)}
+                  placeholder="Enter GSM"
+                />
+              </Form.Group>
+            </Col>
+            <Col sm="6">
+              <Form.Group className="mb-3">
+                <Form.Label>
+                  <strong>Default Elongation</strong>
+                </Form.Label>
+                <Form.Control
+                  value={defaultElongation}
+                  onChange={(e) => setDefaultElongation(e.target.value)}
+                  placeholder="Enter Elongation"
+                />
+              </Form.Group>
+            </Col>
+            {defaultLotUom === "ROLL" && (
+              <>
+                <Col sm="6">
+                  <Form.Group className="mb-3">
+                    <Form.Label>
+                      <strong>Default Roll Width</strong>
+                    </Form.Label>
+                    <Form.Control
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={defaultRollWidth}
+                      onChange={(e) => setDefaultRollWidth(e.target.value)}
+                      placeholder="e.g., 1200"
+                    />
+                  </Form.Group>
+                </Col>
+                <Col sm="6">
+                  <Form.Group className="mb-3">
+                    <Form.Label>
+                      <strong>Default Roll Width OUM</strong>
+                    </Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={defaultRollWidthOum}
+                      onChange={(e) => setDefaultRollWidthOum(e.target.value)}
+                      placeholder="e.g., MM"
+                    />
+                  </Form.Group>
+                </Col>
+              </>
+            )}
           </Row>
           <p className="text-muted mb-3">
             Select items below and enter <strong>Quantity per Box</strong>.
@@ -1769,9 +1861,13 @@ const DeliverySummaryList = () => {
             <AgGridReact
               rowData={deliveryScheduleListUsage.map((item) => ({
                 ...item,
-                LOT_OUM: item.LOT_OUM || defaultLotUom,
-                PACK_PER_BOX: item.PACK_PER_BOX || defaultPack,
-                QUANTITY_PER_BOX: item.QUANTITY_PER_BOX || defaultQty,
+                LOT_OUM: defaultLotUom,
+                PACK_PER_BOX: defaultPack,
+                QUANTITY_PER_BOX: defaultQty,
+                GSM: defaultGsm,
+                ELONGATION: defaultElongation,
+                VENDOR_ROLL_WIDTH: defaultRollWidth,
+                ROLL_WIDTH_OUM: defaultRollWidthOum,
               }))}
               columnDefs={matrixPackingList}
               defaultColDef={defaultColDef}
@@ -1844,14 +1940,26 @@ const DeliverySummaryList = () => {
                     : "Create Delivery Schedule"}
                 </h5>
                 <div>
-                 {packingList.length > 0 && 
-                    deliveryScheduleList.reduce((sum, row) => sum + Number(row.QUANTITY), 0) === 
-                    packingList.reduce((sum, row) => sum + Number(row.TOTAL_QUANTITY), 0) && 
-                    !currentSchedule.IS_APPROVE && isEditing ? (
-                      <Button className="mx-3" variant="success" size="sm" onClick={handleApprove}>
-                        Approve Status
-                      </Button>
-                    ) : null}
+                  {packingList.length > 0 &&
+                  deliveryScheduleList.reduce(
+                    (sum, row) => sum + Number(row.QUANTITY),
+                    0
+                  ) ===
+                    packingList.reduce(
+                      (sum, row) => sum + Number(row.TOTAL_QUANTITY),
+                      0
+                    ) &&
+                  !currentSchedule.IS_APPROVE &&
+                  isEditing ? (
+                    <Button
+                      className="mx-3"
+                      variant="success"
+                      size="sm"
+                      onClick={handleApprove}
+                    >
+                      Approve Status
+                    </Button>
+                  ) : null}
                   <Button
                     className="mx-3"
                     variant="secondary"
@@ -1860,42 +1968,35 @@ const DeliverySummaryList = () => {
                   >
                     Back to List
                   </Button>
-                  {
-                    !currentSchedule.IS_APPROVE &&
-                  
-                  <Button
-                    variant="primary"
-                    onClick={handleSave}
-                    disabled={loading}
-                    size="sm"
-                  >
-                    {loading ? (
-                      <Spinner animation="border" size="sm" />
-                    ) : isEditing ? (
-                      "Update Schedule"
-                    ) : (
-                      "Create Schedule"
-                    )}
-                  </Button>
-                  }
+                  {!currentSchedule.IS_APPROVE && (
+                    <Button
+                      variant="primary"
+                      onClick={handleSave}
+                      disabled={loading}
+                      size="sm"
+                    >
+                      {loading ? (
+                        <Spinner animation="border" size="sm" />
+                      ) : isEditing ? (
+                        "Update Schedule"
+                      ) : (
+                        "Create Schedule"
+                      )}
+                    </Button>
+                  )}
                 </div>
               </div>
             </Card.Header>
             <Card.Body>
               <Row className="g-3">
-                {
-                  currentSchedule.IS_APPROVE &&
-                
-                <Col md={12}>
-                  <Form.Group>
-                    <Form.Label>Approved Flag</Form.Label>
-                    <Form.Control
-                      value="Yes"
-                      disabled
-                    />
-                  </Form.Group>
-                </Col>
-                }
+                {currentSchedule.IS_APPROVE && (
+                  <Col md={12}>
+                    <Form.Group>
+                      <Form.Label>Approved Flag</Form.Label>
+                      <Form.Control value="Yes" disabled />
+                    </Form.Group>
+                  </Col>
+                )}
                 <Col md={6}>
                   <Form.Group>
                     <Form.Label>ATD Date</Form.Label>
@@ -2079,8 +2180,6 @@ const DeliverySummaryList = () => {
             onSelect={(e) => changeTab(e)}
           >
             <Tab eventKey="summary" title="Summary">
-              
-              
               <Card className="my-4">
                 <Card.Header>
                   <h5>Select Purchase Orders</h5>
@@ -2104,7 +2203,7 @@ const DeliverySummaryList = () => {
                     />
                   </div>
                 </Card.Body>
-              </Card> 
+              </Card>
               <Card>
                 <Card.Header>
                   <div className="d-flex justify-content-between align-items-center">
@@ -2228,33 +2327,48 @@ const DeliverySummaryList = () => {
                                         Barcode / QR CODE:{" "}
                                         {box.BARCODE_CODE || "-"}
                                       </Card.Subtitle>
-                                      {box.LOT_OUM === "ROLL" && (
-                                        <>
+                                      <Row style={{width: "450px"}}>
+                                        {box.LOT_OUM === "ROLL" && (
+                                          <>
+                                            <Col sm="6">
+                                              <Card.Subtitle className="mb-2">
+                                                Roll Width:{" "}
+                                                <span
+                                                  style={{fontWeight: "bold"}}
+                                                >
+                                                  {box.VENDOR_ROLL_WIDTH || "-"}
+                                                </span>
+                                              </Card.Subtitle>
+                                            </Col>
+                                            <Col sm="6">
+                                              <Card.Subtitle className="mb-2">
+                                                Roll Width OUM:{" "}
+                                                <span
+                                                  style={{fontWeight: "bold"}}
+                                                >
+                                                  {box.ROLL_WIDTH_OUM || "-"}
+                                                </span>
+                                              </Card.Subtitle>
+                                            </Col>
+                                          </>
+                                        )}
+
+                                        <Col sm="6">
                                           <Card.Subtitle className="mb-2">
-                                            Roll Width:{" "}
-                                            <span
-                                              style={{
-                                                color: "red",
-                                                fontWeight: "bold",
-                                              }}
-                                            >
-                                              {box.VENDOR_ROLL_WIDTH || "-"}
+                                            GSM:{" "}
+                                            <span style={{fontWeight: "bold"}}>
+                                              {box.GSM}
                                             </span>
                                           </Card.Subtitle>
+                                        </Col>
+                                        <Col sm="6">
                                           <Card.Subtitle className="mb-2">
-                                            Roll Width OUM:{" "}
-                                            <span
-                                              style={{
-                                                color: "red",
-                                                fontWeight: "bold",
-                                              }}
-                                            >
-                                              {box.ROLL_WIDTH_OUM || "-"}
+                                            Elongation:{" "}
+                                            <span style={{fontWeight: "bold"}}>
+                                              {box.ELONGATION}
                                             </span>
                                           </Card.Subtitle>
-                                        </>
-                                      )}
-                                      <Row style={{width: "350px"}}>
+                                        </Col>
                                         <Col sm="6">
                                           <Card.Subtitle className="mb-2 text-muted">
                                             Total Pack: {box.TOTAL_PACK}
