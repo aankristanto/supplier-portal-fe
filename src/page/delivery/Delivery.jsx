@@ -1860,6 +1860,9 @@ const DeliverySummaryList = () => {
                   >
                     Back to List
                   </Button>
+                  {
+                    !currentSchedule.IS_APPROVE &&
+                  
                   <Button
                     variant="primary"
                     onClick={handleSave}
@@ -1874,20 +1877,25 @@ const DeliverySummaryList = () => {
                       "Create Schedule"
                     )}
                   </Button>
+                  }
                 </div>
               </div>
             </Card.Header>
             <Card.Body>
               <Row className="g-3">
+                {
+                  currentSchedule.IS_APPROVE &&
+                
                 <Col md={12}>
                   <Form.Group>
                     <Form.Label>Approved Flag</Form.Label>
                     <Form.Control
-                      value={currentSchedule.IS_APPROVE ? 'Yes' : 'No'}
+                      value="Yes"
                       disabled
                     />
                   </Form.Group>
                 </Col>
+                }
                 <Col md={6}>
                   <Form.Group>
                     <Form.Label>ATD Date</Form.Label>
