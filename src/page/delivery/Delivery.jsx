@@ -1597,82 +1597,63 @@ const DeliverySummaryList = () => {
       >
         <Modal.Header closeButton>
           <Modal.Title id="modal-detail-title">
-            Packing List Details: {modalData?.SEQUENCE}
+            Packing List Details
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {modalData ? (
-            <>
+          
               <div className="mb-3">
                 <h6>General Information</h6>
                 <Table bordered size="sm">
                   <tbody>
                     <tr>
-                      <td>
-                        <strong>Sequence:</strong>
-                      </td>
+                      <td><strong>Sequence:</strong></td>
                       <td>{modalData.SEQUENCE}</td>
                     </tr>
                     <tr>
-                      <td>
-                        <strong>Delivery Summary ID:</strong>
-                      </td>
-                      <td>{modalData.DELIVERY_SUMMARY_ID}</td>
+                      <td><strong>Lot OUM:</strong></td>
+                      <td>{modalData.LOT_OUM}</td>
                     </tr>
                     <tr>
-                      <td>
-                        <strong>Created At:</strong>
-                      </td>
+                      <td><strong>Vendor Barcode:</strong></td>
+                      <td>{modalData.BARCODE_CODE || "N/A"}</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Total Pack:</strong></td>
+                      <td>{modalData.TOTAL_PACK}</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Total Quantity:</strong></td>
+                      <td>{modalData.TOTAL_QUANTITY}</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Created At:</strong></td>
                       <td>{new Date(modalData.CREATED_AT).toLocaleString()}</td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <strong>Created By:</strong>
-                      </td>
-                      <td>{modalData.CREATED_ID || "N/A"}</td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <strong>Updated At:</strong>
-                      </td>
-                      <td>
-                        {modalData.UPDATED_AT
-                          ? new Date(modalData.UPDATED_AT).toLocaleString()
-                          : "N/A"}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <strong>Updated By:</strong>
-                      </td>
-                      <td>{modalData.UPDATED_ID || "N/A"}</td>
                     </tr>
                   </tbody>
                 </Table>
               </div>
-
               <div>
                 <h6>Items in This Packing List</h6>
                 <Table striped bordered hover size="sm">
                   <thead className="table-dark">
                     <tr>
-                      <th>ID</th>
                       <th>Supplier Item ID</th>
-                      <th>Size</th>
+                      <th>Supplier Item Code</th>
                       <th>Code</th>
+                      <th>Size</th>
                       <th>Pack</th>
                       <th>Quantity</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {modalData.PACKING_LIST_DETAILS &&
-                    modalData.PACKING_LIST_DETAILS.length > 0 ? (
+                    { modalData.PACKING_LIST_DETAILS.length > 0 ? (
                       modalData.PACKING_LIST_DETAILS.map((item) => (
                         <tr key={item.ID}>
-                          <td>{item.ID}</td>
-                          <td>{item.SUPPLIER_ITEM_ID}</td>
-                          <td>{item.SIZE || "N/A"}</td>
-                          <td>{item.CODE || "N/A"}</td>
+                          <td>{item.ITEM.ITEM_ID}</td>
+                          <td>{item.ITEM.CODE}</td>
+                          <td>{item.DELIVERY_SUMMARY_LIST.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_COLOR || "N/A"}</td>
+                          <td>{item.DELIVERY_SUMMARY_LIST.PURCHASE_ORDER_DETAIL.MATERIAL_ITEM_SIZE || "N/A"}</td>
                           <td>{item.PACK || "N/A"}</td>
                           <td>{item.QUANTITY}</td>
                         </tr>
@@ -1687,16 +1668,12 @@ const DeliverySummaryList = () => {
                   </tbody>
                 </Table>
               </div>
-            </>
-          ) : (
-            <p>Loading...</p>
-          )}
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setModalShow(false)}>
             Close
           </Button>
-          <Button
+          {!currentSchedule.IS_APPROVE && ( <Button
             variant="danger"
             onClick={() => {
               handleDelete(modalData?.ID);
@@ -1704,7 +1681,7 @@ const DeliverySummaryList = () => {
             }}
           >
             Delete Packing List
-          </Button>
+          </Button> )}
         </Modal.Footer>
       </Modal>
       <Modal
@@ -1866,24 +1843,14 @@ const DeliverySummaryList = () => {
                     : "Create Delivery Schedule"}
                 </h5>
                 <div>
-                  {packingList.lengt && deliveryScheduleList.reduce(
-                    (sum, row) => sum + Number(row.QUANTITY),
-                    0
-                  ) ===
-                    packingList.reduce(
-                      (sum, row) => sum + Number(row.TOTAL_QUANTITY),
-                      0
-                    ) &&
+                 {packingList.length > 0 && 
+                    deliveryScheduleList.reduce((sum, row) => sum + Number(row.QUANTITY), 0) === 
+                    packingList.reduce((sum, row) => sum + Number(row.TOTAL_QUANTITY), 0) && 
                     !currentSchedule.IS_APPROVE && isEditing ? (
-                      <Button
-                        className="mx-3"
-                        variant="success"
-                        size="sm"
-                        onClick={handleApprove}
-                      >
+                      <Button className="mx-3" variant="success" size="sm" onClick={handleApprove}>
                         Approve Status
                       </Button>
-                    ): ''}
+                    ) : null}
                   <Button
                     className="mx-3"
                     variant="secondary"
