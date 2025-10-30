@@ -314,7 +314,7 @@ export const printMpoToPdf = (po, lineItems) => {
   doc.setFont('helvetica', 'bold');
   doc.text('Port of Loading :', 5, 85);
   doc.setFont('helvetica', 'normal');
-  doc.text(po.COUNTRY_NAME || '', 35, 85, {maxWidth: 40});
+  doc.text(po.COUNTRY_NAME || '', 35, 85, { maxWidth: 40 });
 
   doc.setFont('helvetica', 'bold');
   doc.text('Terms of Delivery :', 78, 85);
@@ -396,9 +396,9 @@ export const printMpoToPdf = (po, lineItems) => {
 
 export const generatePackingLabelPDF = (packingListData) => {
   const doc = new jsPDF({
-    orientation: 'landscape', 
+    orientation: 'landscape',
     unit: 'mm',
-    format: [80, 50], 
+    format: [80, 52],
   });
 
   const { COMPANY, PACKING_LIST } = packingListData;
@@ -414,13 +414,18 @@ export const generatePackingLabelPDF = (packingListData) => {
     const mpoIds = [...new Set(PACKING_LIST_DETAILS.map(detail => detail.PURCHASE_ORDER_ID))].join(', ');
     const itemIds = [...new Set(PACKING_LIST_DETAILS.map(detail => detail.ITEM_ID))].join(', ');
     const barcodeValue = BARCODE_CODE || BARCODE_SYSTEM;
-    
+
+
+    doc.setFontSize(9);
+    doc.setFont('Helvetica', 'bold');
+    doc.text(COMPANY?.NAME || 'N/A', 40, 5, { align: 'center', maxWidth: 70 });
+
     const canvas = document.createElement('canvas');
     JsBarcode(canvas, barcodeValue, {
       format: "CODE128",
-      width: 1.2, 
-      height: 15, 
-      displayValue: false, 
+      width: 1.2,
+      height: 15,
+      displayValue: false,
       margin: 0,
       marginTop: 0,
       marginBottom: 0,
@@ -428,26 +433,31 @@ export const generatePackingLabelPDF = (packingListData) => {
       marginRight: 5,
     });
 
-    
     const barcodeImgData = canvas.toDataURL('image/png');
-    doc.addImage(barcodeImgData, 'PNG', 5, 5, 70, 15); 
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const barcodeWidth = 70;
+    const barcodeHeight = 14;
+    const x = (pageWidth - barcodeWidth) / 2;
+    const y = 7;
+
+    doc.addImage(barcodeImgData, 'PNG', x, y, barcodeWidth, barcodeHeight);
     doc.setFontSize(7);
     doc.setFont('Helvetica', 'bold');
-    doc.text(barcodeValue, 40, 23, { align: 'center', maxWidth: 70 });
+    doc.text(barcodeValue, 40, 25, { align: 'center', maxWidth: 70 });
 
 
     doc.setFontSize(6);
     doc.setFont('Helvetica', 'normal');
     const boxTotalQty = PACKING_LIST_DETAILS.reduce((sum, detail) => sum + (detail.QUANTITY || 0), 0);
-    doc.text(`Box Sequence: ${SEQUENCE}`, 20, 27);
-    doc.text(`Total QTY: ${boxTotalQty}`, 46, 27);
+    doc.text(`Box Sequence: ${SEQUENCE}`, 20, 28);
+    doc.text(`Total QTY: ${boxTotalQty}`, 46, 28);
 
-    doc.text(`MPOs: ${mpoIds || '-'}`, 8, 33, {maxWidth: 70});
-    doc.text(`Item IDs: ${itemIds || '-'}`, 8, 38, {maxWidth: 70});
+    doc.text("MPO List:", 7, 32)
+    doc.text(`${mpoIds || '-'}`, 7, 35, { maxWidth: 30 });
+    doc.text("Item ID List:", 42, 32)
+    doc.text(`${itemIds || '-'}`, 42, 35, { maxWidth: 30 });
 
-    doc.setFontSize(8);
-    doc.setFont('Helvetica', 'bold');
-    doc.text(COMPANY?.NAME || 'N/A', 40, 46, {align: 'center', maxWidth: 70});
   });
 
   doc.save(`Packing_Label_${packingListData.INVOICE_NO || 'UNKNOWN'}.pdf`);
