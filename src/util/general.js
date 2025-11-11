@@ -216,6 +216,9 @@ export const printMpoToPdf = (po, lineItems) => {
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('PT. Sumber Bintang Rejeki Does Not Accept Over and Short Shipment.', 5, 40);
+    doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.text('NPWP : 0013 1369 2441 6000', 5, 15);
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
@@ -277,6 +280,9 @@ export const printMpoToPdf = (po, lineItems) => {
   doc.text('Name', 78, 43); doc.text(': ', 90, 43); doc.text(po.INVOICE_DETAIL?.INVOICE_COMPANY_NAME || '', 92, 43);
   doc.text('Address', 78, 48); doc.text(': ', 90, 48);
   doc.text(`${po.INVOICE_DETAIL?.INVOICE_ADDRESS || ''}, ${po.INVOICE_DETAIL?.INVOICE_ADDRESS_2 || ''}`, 92, 48, { maxWidth: 50 });
+  doc.text('Attn', 78, 63);
+  doc.text(': ', 90, 63);
+  doc.text(`${po?.CREATED_NAME}`, 92, 63, { maxWidth: 50 });
   doc.text('Tel', 78, 71); doc.text(': ', 90, 71); doc.text(po.INVOICE_DETAIL?.INVOICE_PHONE || '', 92, 71, { maxWidth: 50 });
   doc.text('Email', 78, 75); doc.text(': ', 90, 75); doc.text(po.INVOICE_DETAIL?.INVOICE_EMAIL || '', 92, 75, { maxWidth: 50 });
 
@@ -292,7 +298,7 @@ export const printMpoToPdf = (po, lineItems) => {
   doc.text(': ', 172, 35); doc.text(': ', 172, 40); doc.text(': ', 172, 45);
   doc.setFont('helvetica', 'normal');
   doc.text(po.MPO_ETD || '', 173, 35);
-  doc.text(po.DELIVERY_MODE_CODE || '', 173, 40);
+  doc.text(po?.DELIVERY_MODE?.DELIVERY_MODE_DESC || '', 173, 40);
   doc.text(po.PORT_DISCHARGE || '', 173, 45);
 
   doc.setFillColor(50, 50, 50);
