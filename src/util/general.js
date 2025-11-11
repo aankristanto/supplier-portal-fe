@@ -416,7 +416,7 @@ export const generatePackingLabelPDF = (packingListData) => {
       doc.addPage([80, 50], 'landscape');
     }
 
-    const { SEQUENCE, BARCODE_CODE, BARCODE_SYSTEM, PACKING_LIST_DETAILS } = box;
+    const { SEQUENCE, LOT_OUM, BARCODE_CODE, BARCODE_SYSTEM, PACKING_LIST_DETAILS } = box;
 
     const mpoIds = [...new Set(PACKING_LIST_DETAILS.map(detail => detail.PURCHASE_ORDER_ID))].join(', ');
     const itemIds = [...new Set(PACKING_LIST_DETAILS.map(detail => detail.ITEM_ID))].join(', ');
@@ -457,7 +457,7 @@ export const generatePackingLabelPDF = (packingListData) => {
     doc.setFontSize(6);
     doc.setFont('Helvetica', 'normal');
     const boxTotalQty = PACKING_LIST_DETAILS.reduce((sum, detail) => sum + (detail.QUANTITY || 0), 0);
-    doc.text(`Box Sequence: ${SEQUENCE}`, 20, 28);
+    doc.text(`${LOT_OUM} Sequence: ${SEQUENCE}`, 20, 28);
     doc.text(`Total QTY: ${boxTotalQty}`, 46, 28);
 
     doc.text("MPO List:", 7, 32)
