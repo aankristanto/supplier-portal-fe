@@ -92,6 +92,10 @@ const DeliverySummaryList = () => {
     CONTAINER_NOTE: "",
   });
 
+  const listMeter = [
+    "MM", "CM", "INCH"
+  ]
+
   const poColumnDefs = [
     {
       headerName: "Select",
@@ -1840,12 +1844,11 @@ const DeliverySummaryList = () => {
                     <Form.Label>
                       <strong>Default Roll Width OUM</strong>
                     </Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={defaultRollWidthOum}
-                      onChange={(e) => setDefaultRollWidthOum(e.target.value)}
-                      placeholder="e.g., MM"
-                    />
+                    <Form.Select value={defaultRollWidthOum} onChange={(e) => setDefaultRollWidthOum(e.target.value)}>
+                      {
+                        listMeter.map((item, idx) => <option key={idx} value={item}>{item}</option>)
+                      }
+                    </Form.Select>
                   </Form.Group>
                 </Col>
               </>
@@ -2411,6 +2414,7 @@ const DeliverySummaryList = () => {
                                   >
                                     <AgGridReact
                                       columnDefs={packingListColumnDefs}
+                                      defaultColDef={defaultColDef}
                                       rowData={box.PACKING_LIST_DETAILS}
                                     />
                                   </div>
