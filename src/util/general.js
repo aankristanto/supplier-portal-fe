@@ -155,6 +155,9 @@ export const printMpoToPdf = (po, lineItems) => {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
     doc.text('PT. SUMBER BINTANG REJEKI', 5, 10);
+    doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.text('NPWP : 0013 1369 2441 6000', 5, 15);
   }
 
 
@@ -216,9 +219,7 @@ export const printMpoToPdf = (po, lineItems) => {
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('PT. Sumber Bintang Rejeki Does Not Accept Over and Short Shipment.', 5, 40);
-    doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
-        doc.text('NPWP : 0013 1369 2441 6000', 5, 15);
+    
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
@@ -282,7 +283,7 @@ export const printMpoToPdf = (po, lineItems) => {
   doc.text(`${po.INVOICE_DETAIL?.INVOICE_ADDRESS || ''}, ${po.INVOICE_DETAIL?.INVOICE_ADDRESS_2 || ''}`, 92, 48, { maxWidth: 50 });
   doc.text('Attn', 78, 63);
   doc.text(': ', 90, 63);
-  doc.text(`${po?.CREATED_NAME}`, 92, 63, { maxWidth: 50 });
+  doc.text(`${po?.CREATED_NAME || " "}`, 92, 63, { maxWidth: 50 });
   doc.text('Tel', 78, 71); doc.text(': ', 90, 71); doc.text(po.INVOICE_DETAIL?.INVOICE_PHONE || '', 92, 71, { maxWidth: 50 });
   doc.text('Email', 78, 75); doc.text(': ', 90, 75); doc.text(po.INVOICE_DETAIL?.INVOICE_EMAIL || '', 92, 75, { maxWidth: 50 });
 
